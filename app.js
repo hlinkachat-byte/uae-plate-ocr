@@ -1,97 +1,437 @@
-// ===== Tabs =====
-const tabUpload = document.getElementById("tabUpload");
-const tabCatalog = document.getElementById("tabCatalog");
-const uploadSection = document.getElementById("uploadSection");
-const catalogSection = document.getElementById("catalogSection");
+// app.js
+const {
+  initializeApp, getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
+  serverTimestamp, doc, updateDoc, deleteDoc,
+  getStorage, sRef, uploadBytes, getDownloadURL, deleteObject
+} = window.firebaseImports;
 
-tabUpload.onclick = () => {
-  tabUpload.classList.add("active");
-  tabCatalog.classList.remove("active");
-  uploadSection.style.display = "block";
-  catalogSection.style.display = "none";
+// 1) DOPLŇ FIREBASE CONFIG (z Firebase Console → Project settings → Web app)
+const firebaseConfig = {
+  apiKey: "PASTE_HERE",
+  authDomain: "PASTE_HERE",
+  projectId: "PASTE_HERE",
+  storageBucket: "PASTE_HERE",
+  appId: "PASTE_HERE"
 };
 
-tabCatalog.onclick = () => {
-  tabCatalog.classList.add("active");
-  tabUpload.classList.remove("active");
-  catalogSection.style.display = "block";
-  uploadSection.style.display = "none";
-  renderCatalog();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// ===== UI refs
+const gallery = document.getElementById("gallery");
+const qEl = document.getElementById("q");
+const sortEl = document.getElementById("sort");
+const btnGrid = document.getElementById("btnGrid");
+const btnList = document.getElementById("btnList");
+const countText = document.getElementById("countText");
+
+const chipsEmirates = document.getElementById("chipsEmirates");
+const chipsDigits = document.getElementById("chipsDigits");
+
+const addModal = document.getElementById("addModal");
+const btnOpenAdd = document.getElementById("btnOpenAdd");
+const btnCloseAdd = document.getElementById("btnCloseAdd");
+const navItems = [...document.querySelectorAll(".navItem")];
+
+const addEmirate = document.getElementById("addEmirate");
+const addFile = document.getElementById("addFile");
+const addPreview = document.getElementById("addPreview");
+const addStatus = document.getElementById("addStatus");
+const addPlate = document.getElementById("addPlate");
+const addCode = document.getElementById("addCode");
+const addDigits = document.getElementById("addDigits");
+const addNeedsReview = document.getElementById("addNeedsReview");
+const btnDoOcr = document.getElementById("btnDoOcr");
+const btnSave = document.getElementById("btnSave");
+const addCandidates = document.getElementById("addCandidates");
+
+// ===== Filters (ako na local)
+const EMIRATES = ["Všetky","Dubai","Abu Dhabi","Sharjah","Ajman","Ras Al Khaimah","Fujairah","Umm Al Quwain"];
+const DIGIT_FILTERS = [
+  { key:"all", label:"Všetky číslice" },
+  { key:"1", label:"1-ciferný" },
+  { key:"2", label:"2-ciferný" },
+  { key:"3", label:"3-ciferný" },
+  { key:"45", label:"4–5" },
+  { key:"review", label:"Vyžaduje sa kontrola" },
+];
+
+let state = {
+  emirate: "Všetky",
+  digitsKey: "all",
+  view: "grid",
+  sort: "new",
+  q: "",
+  items: [],
+  filtered: []
 };
 
-// ===== Upload preview =====
-const photoInput = document.getElementById("photo");
-const preview = document.getElementById("preview");
+// ===== Helpers
+const norm = (s) => (s || "").toString().trim();
+const onlyDigits = (s) => norm(s).replace(/\D+/g,"");
+const upper = (s) => norm(s).toUpperCase();
 
-photoInput.onchange = () => {
-  const file = photoInput.files[0];
-  if (!file) return;
-  preview.src = URL.createObjectURL(file);
-};
+function digitsBucket(n){
+  if(!n) return 0;
+  if(n.length===1) return 1;
+  if(n.length===2) return 2;
+  if(n.length===3) return 3;
+  if(n.length===4 || n.length===5) return 45;
+  return 99;
+}
 
-// ===== Fake data store (LOCAL only for now) =====
-// Neskôr sa toto nahradí Firestore
-let records = [];
+// jednoduché rarity skóre ako v local (približne)
+function rarityScore(digits){
+  const n = onlyDigits(digits);
+  if(!n) return { label:"Vyžaduje kontrolu", score:0 };
+  if(n.length===1) return { label:"Extrémne vzácne", score:99 };
+  if(n.length===2) return { label:"Veľmi zriedkavé", score:95 };
+  if(n.length===3) return { label:"Zriedkavé", score:70 };
+  if(n.length===4) return { label:"Menej časté", score:55 };
+  if(n.length===5) return { label:"Bežnejšie", score:40 };
+  return { label:"Neznáme", score:0 };
+}
 
-// ===== Scan & Save (mock) =====
-document.getElementById("scanBtn").onclick = () => {
-  const file = photoInput.files[0];
-  if (!file) {
-    alert("Select a photo");
-    return;
+function buildPlateText(code, digits){
+  const c = upper(code);
+  const d = onlyDigits(digits);
+  if(c && d) return `${c} ${d}`;
+  if(d) return d;
+  if(c) return c;
+  return "";
+}
+
+function setView(view){
+  state.view = view;
+  if(view==="grid"){
+    gallery.classList.remove("list");
+    gallery.classList.add("grid");
+    btnGrid.classList.add("on"); btnList.classList.remove("on");
+  } else {
+    gallery.classList.remove("grid");
+    gallery.classList.add("list");
+    btnList.classList.add("on"); btnGrid.classList.remove("on");
   }
+}
 
-  const emirate = document.getElementById("emirate").value;
+function openAdd(){
+  addModal.classList.add("show");
+  addModal.setAttribute("aria-hidden","false");
+}
+function closeAdd(){
+  addModal.classList.remove("show");
+  addModal.setAttribute("aria-hidden","true");
+}
 
-  // fake OCR result (teraz len simulácia)
-  const fakePlate =
-    emirate.charAt(0).toUpperCase() + " " +
-    Math.floor(10000 + Math.random() * 89999);
+function setStatus(text){
+  addStatus.textContent = text;
+}
 
-  document.getElementById("plateText").innerText = fakePlate;
-
-  records.unshift({
-    plate: fakePlate,
-    emirate,
-    image: preview.src,
-    createdAt: new Date()
+// ===== Chips UI
+function renderChips(){
+  chipsEmirates.innerHTML = "";
+  EMIRATES.forEach(e=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (state.emirate===e ? " on":"");
+    b.textContent = e;
+    b.onclick = () => { state.emirate=e; renderChips(); applyFilters(); };
+    chipsEmirates.appendChild(b);
   });
 
-  alert("Saved to catalog (local demo)");
+  chipsDigits.innerHTML = "";
+  DIGIT_FILTERS.forEach(f=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (state.digitsKey===f.key ? " on":"");
+    b.textContent = f.label;
+    b.onclick = () => { state.digitsKey=f.key; renderChips(); applyFilters(); };
+    chipsDigits.appendChild(b);
+  });
+}
+
+// ===== Firestore load
+async function loadLatest(){
+  // 200 posledných (môžeme zvýšiť)
+  const col = collection(db, "plates");
+  const qy = query(col, orderBy("createdAt","desc"), limit(200));
+  const snap = await getDocs(qy);
+  const out = [];
+  snap.forEach(d=>{
+    out.push({ id: d.id, ...d.data() });
+  });
+  state.items = out;
+  applyFilters();
+}
+
+// ===== Filters
+function matchesEmirate(item){
+  if(state.emirate==="Všetky") return true;
+  return norm(item.emirate) === state.emirate;
+}
+function matchesDigits(item){
+  const needReview = !!item.needsReview;
+  const d = onlyDigits(item.digits || item.plateDigits || "");
+  const b = digitsBucket(d);
+
+  if(state.digitsKey==="all") return true;
+  if(state.digitsKey==="review") return needReview || !d;
+  if(state.digitsKey==="45") return b===45;
+  return String(b)===state.digitsKey;
+}
+function matchesQuery(item){
+  const q = upper(state.q);
+  if(!q) return true;
+
+  const plate = upper(item.plateText || "");
+  const code = upper(item.code || "");
+  const digits = onlyDigits(item.digits || "");
+  const emir = upper(item.emirate || "");
+
+  return plate.includes(q) || code.includes(q) || digits.includes(onlyDigits(q)) || emir.includes(q);
+}
+
+function applyFilters(){
+  let arr = [...state.items];
+
+  // sort
+  if(state.sort==="old") {
+    arr.reverse();
+  }
+
+  arr = arr.filter(it => matchesEmirate(it) && matchesDigits(it) && matchesQuery(it));
+  state.filtered = arr;
+
+  countText.textContent = `${arr.length} položky`;
+  renderGallery();
+}
+
+// ===== Render cards
+function renderGallery(){
+  gallery.innerHTML = "";
+  state.filtered.forEach(item=>{
+    const a = document.createElement("a");
+    a.className = "card";
+    a.href = item.imageUrl || "#";
+    a.target = "_blank";
+    a.rel = "noopener";
+
+    const img = document.createElement("img");
+    img.className = "thumb";
+    img.src = item.imageUrl || "";
+    img.alt = "car";
+
+    const body = document.createElement("div");
+    body.className = "cardBody";
+
+    const line1 = document.createElement("div");
+    line1.className = "line1";
+
+    const dot = document.createElement("span");
+    dot.className = "greenDot";
+
+    const plate = document.createElement("div");
+    plate.className = "plateText";
+    plate.textContent = `${item.emirate || "—"} · ${item.plateText || "—"}`;
+
+    const badge = document.createElement("div");
+    badge.className = "badge" + (item.needsReview ? " review":"");
+    badge.textContent = item.needsReview ? "Vyžaduje kontrolu" : "OK";
+
+    line1.append(dot, plate, badge);
+
+    const rs = rarityScore(item.digits || "");
+    const rar = document.createElement("div");
+    rar.className = "rarity";
+    rar.textContent = `${rs.label} · ${rs.score}/100`;
+
+    const meta = document.createElement("div");
+    meta.className = "meta muted small";
+    const by = item.addedBy || "Anon#1853";
+    const dt = item.createdAt?.toDate ? item.createdAt.toDate() : null;
+    const dateStr = dt ? dt.toLocaleDateString("sk-SK") : "";
+    meta.textContent = `Pridal(a) ${by}${dateStr ? " · " + dateStr : ""}`;
+
+    body.append(line1, rar, meta);
+    a.append(img, body);
+
+    // Right-click / alt-click quick edit
+    a.addEventListener("click", (e) => {
+      // normálne otvorí obrázok v novej karte
+    });
+
+    gallery.appendChild(a);
+  });
+}
+
+// ===== ADD FLOW
+addFile.addEventListener("change", () => {
+  const f = addFile.files?.[0];
+  if(!f) return;
+  addPreview.src = URL.createObjectURL(f);
+  setStatus("Photo ready");
+});
+
+btnOpenAdd.onclick = openAdd;
+btnCloseAdd.onclick = closeAdd;
+addModal.addEventListener("click", (e) => {
+  if(e.target === addModal) closeAdd();
+});
+
+// bottom nav -> otvor add
+navItems.forEach(btn=>{
+  btn.onclick = () => {
+    navItems.forEach(x=>x.classList.remove("active"));
+    btn.classList.add("active");
+    const page = btn.dataset.page;
+    if(page==="add") openAdd();
+  };
+});
+
+qEl.addEventListener("input", () => { state.q = qEl.value; applyFilters(); });
+sortEl.addEventListener("change", () => { state.sort = sortEl.value; applyFilters(); });
+
+btnGrid.onclick = () => setView("grid");
+btnList.onclick = () => setView("list");
+
+// OCR (cez Netlify function /api/ocr)
+async function doOcr(file){
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("emirate", addEmirate.value);
+
+  // Netlify automaticky mapuje functions cez /.netlify/functions/...
+  // Ak máš redirect na /api/*, nechaj /api/ocr. Inak použi /.netlify/functions/ocr
+  const res = await fetch("/.netlify/functions/ocr", {
+    method: "POST",
+    body: fd
+  });
+
+  if(!res.ok) throw new Error("OCR failed");
+  return await res.json();
+}
+
+// veľmi jednoduché “upratanie” OCR textu
+function pickBestPlate(result){
+  const candidates = result?.candidates || [];
+  // očakávame niečo ako "H 6403" alebo aspoň digits
+  let best = { plateText:"", code:"", digits:"", confidence:0 };
+
+  for(const c of candidates){
+    const t = upper(c.text || "");
+    const conf = Number(c.confidence || 0);
+
+    // extrahuj "LETTER + digits"
+    const m = t.match(/\b([A-Z])\s*[- ]?\s*(\d{1,5})\b/);
+    if(m){
+      const code = m[1];
+      const digits = m[2];
+      const plateText = `${code} ${digits}`;
+      const score = conf + (digits.length===1?20:digits.length===2?15:digits.length===3?8:0);
+      if(score > best.confidence){
+        best = { plateText, code, digits, confidence: score };
+      }
+      continue;
+    }
+
+    // fallback: len čísla
+    const d = (t.match(/\b\d{1,5}\b/)||[])[0];
+    if(d){
+      const score = conf - 5;
+      if(score > best.confidence){
+        best = { plateText: d, code:"", digits:d, confidence: score };
+      }
+    }
+  }
+
+  return { best, candidates };
+}
+
+btnDoOcr.onclick = async () => {
+  const f = addFile.files?.[0];
+  if(!f) return alert("Vyber fotku.");
+  try{
+    setStatus("OCR…");
+    const r = await doOcr(f);
+    const { best, candidates } = pickBestPlate(r);
+    addCandidates.textContent = JSON.stringify(candidates, null, 2);
+
+    addPlate.value = best.plateText || "";
+    addCode.value = best.code || "";
+    addDigits.value = best.digits || "";
+
+    // ak to vyzerá divne → needs review
+    const d = onlyDigits(addDigits.value);
+    const suspicious = !d || d.length > 5;
+    addNeedsReview.checked = suspicious || !!r.needsReview;
+    setStatus(best.plateText ? "OCR done" : "OCR weak (review)");
+  }catch(err){
+    console.error(err);
+    setStatus("OCR error");
+    alert("OCR zlyhalo. Skús inú fotku alebo oprav ručne.");
+  }
 };
 
-// ===== Catalog =====
-const gallery = document.getElementById("gallery");
-const searchInput = document.getElementById("search");
-const filterEmirate = document.getElementById("filterEmirate");
+btnSave.onclick = async () => {
+  const f = addFile.files?.[0];
+  if(!f) return alert("Vyber fotku.");
 
-searchInput.oninput = renderCatalog;
-filterEmirate.onchange = renderCatalog;
+  const emirate = addEmirate.value;
+  const code = upper(addCode.value);
+  const digits = onlyDigits(addDigits.value);
+  const plateText = norm(addPlate.value) || buildPlateText(code, digits);
 
-function renderCatalog() {
-  gallery.innerHTML = "";
+  if(!plateText) return alert("Doplň evidenčné číslo.");
 
-  const q = searchInput.value.toLowerCase();
-  const emirateFilter = filterEmirate.value;
+  try{
+    setStatus("Uploading…");
 
-  records
-    .filter(r =>
-      (!q || r.plate.toLowerCase().includes(q)) &&
-      (!emirateFilter || r.emirate === emirateFilter)
-    )
-    .forEach(r => {
-      const card = document.createElement("div");
-      card.className = "card";
+    // upload to Storage
+    const path = `plates/${Date.now()}_${Math.random().toString(16).slice(2)}_${f.name}`;
+    const storageRef = sRef(storage, path);
+    await uploadBytes(storageRef, f);
+    const imageUrl = await getDownloadURL(storageRef);
 
-      card.innerHTML = `
-        <img src="${r.image}">
-        <div class="info">
-          <strong>${r.plate}</strong><br>
-          ${r.emirate}<br>
-          <small>${r.createdAt.toLocaleString()}</small>
-        </div>
-      `;
+    const rs = rarityScore(digits);
 
-      gallery.appendChild(card);
+    // save to Firestore
+    await addDoc(collection(db, "plates"), {
+      emirate,
+      code: code || "",
+      digits: digits || "",
+      plateText,
+      rarityLabel: rs.label,
+      rarityScore: rs.score,
+      needsReview: !!addNeedsReview.checked,
+      imageUrl,
+      imagePath: path,
+      addedBy: document.getElementById("userName")?.textContent || "Anon",
+      createdAt: serverTimestamp()
     });
-}
+
+    setStatus("Saved ✅");
+    closeAdd();
+
+    // reset form
+    addFile.value = "";
+    addPreview.src = "";
+    addPlate.value = "";
+    addCode.value = "";
+    addDigits.value = "";
+    addNeedsReview.checked = false;
+    addCandidates.textContent = "[]";
+
+    await loadLatest();
+  }catch(err){
+    console.error(err);
+    setStatus("Save error");
+    alert("Uloženie zlyhalo (Firebase config/Storage/Rules).");
+  }
+};
+
+// ===== Init
+renderChips();
+setView("grid");
+loadLatest().catch(e=>{
+  console.error(e);
+  alert("Nepodarilo sa načítať dáta z Firestore. Skontroluj Firebase config + Firestore rules.");
+});

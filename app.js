@@ -59,7 +59,7 @@ const DIGIT_FILTERS = [
 ];
 
 let state = {
-  emirate: "all",
+  emirate: "All",
   digitsKey: "all",
   view: "grid",
   sort: "new",

@@ -58,7 +58,6 @@ function refreshUserPill(){
 
 
 
-let currentUser = null;
 let displayName = "";
 let displayRoleLabel = "";
 

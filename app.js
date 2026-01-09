@@ -542,9 +542,11 @@ const path = `plates/${ownerUid}/${Date.now()}_${Math.random().toString(16).slic
       needsReview: !!addNeedsReview.checked,
       imageUrl,
       imagePath: path,
-      ownerUid: currentUser?.uid || null,
-ownerName: displayName || (document.getElementById("userName")?.textContent || "Anon"),
-ownerType: currentUser?.isAnonymous ? "anonymous" : "admin",
+     ownerUid: currentUser.uid,
+ownerName: currentUser.isAnonymous
+  ? getAnonNickForUid(currentUser.uid)
+  : (currentUser.email || "Admin"),
+ownerType: currentUser.isAnonymous ? "anonymous" : "admin",
       createdAt: serverTimestamp()
     });
 

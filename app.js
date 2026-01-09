@@ -166,7 +166,7 @@ async function loadLatest(){
 
 // ===== Filters
 function matchesEmirate(item){
-  if(state.emirate==="UAE") return true;
+  if(state.emirate==="all") return true;
   return norm(item.emirate) === state.emirate;
 }
 function matchesDigits(item){
@@ -174,7 +174,7 @@ function matchesDigits(item){
   const d = onlyDigits(item.digits || item.plateDigits || "");
   const b = digitsBucket(d);
 
-  if(state.digitsKey==="All") return true;
+  if(state.digitsKey==="all") return true;
   if(state.digitsKey==="review") return needReview || !d;
   if(state.digitsKey==="45") return b===45;
   return String(b)===state.digitsKey;

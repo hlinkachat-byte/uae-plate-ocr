@@ -325,7 +325,66 @@ function renderGallery(){
     meta.textContent = `Pridal(a) ${by}${dateStr ? " · " + dateStr : ""}`;
 
     body.append(line1, rar, meta);
-    a.append(img, body);
+
+// ACTIONS
+const canEdit = isAdmin || (currentUser && item.ownerUid === currentUser.uid);
+if(canEdit){
+  const actions = document.createElement("div");
+  actions.className = "actions";
+
+  const bEdit = document.createElement("button");
+  bEdit.className = "btnTiny";
+  bEdit.textContent = "Edit";
+  bEdit.onclick = async (e)=>{
+    e.preventDefault(); e.stopPropagation();
+
+    const newEmirate = prompt("Emirate:", item.emirate || "");
+    if(newEmirate === null) return;
+
+    const newCode = prompt("Code (letter):", item.code || "");
+    if(newCode === null) return;
+
+    const newDigits = prompt("Digits:", item.digits || "");
+    if(newDigits === null) return;
+
+    const newNeedsReview = confirm("Inspection required? (OK = Yes, Cancel = No)");
+
+    const plateText = `${(newEmirate||"").trim()} ${(newCode||"").trim()} ${(newDigits||"").trim()}`.trim();
+    const rs = rarityScore(newDigits || "");
+
+    await updateDoc(doc(db, "plates", item.id), {
+      emirate: (newEmirate||"").trim(),
+      code: (newCode||"").trim(),
+      digits: (newDigits||"").trim(),
+      plateText,
+      rarityLabel: rs.label,
+      rarityScore: rs.score,
+      needsReview: !!newNeedsReview
+    });
+
+    await loadLatest();
+  };
+
+  const bDel = document.createElement("button");
+  bDel.className = "btnTiny danger";
+  bDel.textContent = "Delete";
+  bDel.onclick = async (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    if(!confirm("Zmazať tento záznam?")) return;
+
+    // delete storage file if exists
+    if(item.imagePath){
+      try{ await deleteObject(sRef(storage, item.imagePath)); }catch(_){}
+    }
+    await deleteDoc(doc(db, "plates", item.id));
+    await loadLatest();
+  };
+
+  actions.append(bEdit, bDel);
+  body.appendChild(actions);
+}
+
+a.append(img, body);
 
     // Right-click / alt-click quick edit
     a.addEventListener("click", (e) => {

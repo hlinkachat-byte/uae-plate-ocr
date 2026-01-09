@@ -61,16 +61,7 @@ function refreshUserPill(){
 let displayName = "";
 let displayRoleLabel = "";
 
-function getAnonNickForUid(uid){
-  const key = `anonNick_${uid}`;
-  let nick = localStorage.getItem(key);
-  if(!nick){
-    const n = String(Math.floor(1000 + Math.random()*9000));
-    nick = `Anon#${n}`;
-    localStorage.setItem(key, nick);
-  }
-  return nick;
-}
+
 
 function setUserPill(user){
   const nameEl = document.getElementById("userName");

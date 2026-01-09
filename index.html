@@ -1,12 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="sk">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PlateVault DXB</title>
   <link rel="stylesheet" href="./style.css" />
 
+  <!-- Firebase (modular, CDN) -->
   <script type="module">
+    // Tento blok len pripraví globálne "firebaseImports" pre app.js
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
       getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
@@ -30,7 +32,7 @@
       <div class="appIcon"></div>
       <div class="brandText">
         <div class="appName">PlateVault DXB</div>
-        <div class="appSub">Private license plate catalog · Netlify</div>
+        <div class="appSub">Súkromný katalóg evidenčných čísel · Netlify</div>
       </div>
     </div>
 
@@ -38,24 +40,25 @@
       <div class="userPill" id="userPill">
         <span class="dot"></span>
         <span id="userName">Anon#1853</span>
-        <span class="muted">(Anonymous)</span>
+        <span class="muted">(Anonym)</span>
       </div>
-      <button class="btnGold" id="btnOpenAdd">+ Add</button>
+      <button class="btnGold" id="btnOpenAdd">+ Pridať</button>
     </div>
   </header>
 
   <main class="wrap">
+    <!-- FILTER BAR -->
     <section class="filterBar">
       <div class="searchRow">
-        <input id="q" class="search" placeholder="Search plate, code, emirate…" />
+        <input id="q" class="search" placeholder="Vyhľadať evidenčné číslo vozidla, kód, emirát…" />
         <select id="sort" class="select">
-          <option value="new" selected>Newest</option>
-          <option value="old">Oldest</option>
+          <option value="new" selected>Najnovšie</option>
+          <option value="old">Najstaršie</option>
         </select>
 
         <div class="viewToggle">
-          <button id="btnGrid" class="toggle on">Grid</button>
-          <button id="btnList" class="toggle">List</button>
+          <button id="btnGrid" class="toggle on">Mriežka</button>
+          <button id="btnList" class="toggle">Zoznam</button>
         </div>
       </div>
 
@@ -63,26 +66,30 @@
       <div class="chipsRow" id="chipsDigits"></div>
     </section>
 
+    <!-- COUNT -->
     <div class="countRow">
-      <div class="muted" id="countText">0 items</div>
+      <div class="muted" id="countText">0 položky</div>
     </div>
 
+    <!-- GALLERY -->
     <section id="gallery" class="gallery grid"></section>
   </main>
 
+  <!-- BOTTOM NAV -->
   <nav class="bottomNav">
-    <button class="navItem active" data-page="home">Home</button>
-    <button class="navItem" data-page="add">Add</button>
-    <button class="navItem" data-page="stats">Statistics</button>
-    <button class="navItem" data-page="profile">Profile</button>
+    <button class="navItem active" data-page="home">Domov</button>
+    <button class="navItem" data-page="add">Pridať</button>
+    <button class="navItem" data-page="stats">Štatistiky</button>
+    <button class="navItem" data-page="profile">Profil</button>
   </nav>
 
+  <!-- ADD MODAL -->
   <div class="modal" id="addModal" aria-hidden="true">
     <div class="modalCard">
       <div class="modalHead">
         <div>
-          <div class="modalTitle">Add car</div>
-          <div class="muted small">Upload photo → OCR → review → save to catalog</div>
+          <div class="modalTitle">Pridať auto</div>
+          <div class="muted small">Upload fotky → OCR → kontrola → uložiť do katalógu</div>
         </div>
         <button class="iconBtn" id="btnCloseAdd">✕</button>
       </div>
@@ -90,7 +97,7 @@
       <div class="modalBody">
         <div class="formGrid">
           <div class="field">
-            <label>Emirate</label>
+            <label>Emirát</label>
             <select id="addEmirate" class="select">
               <option>Dubai</option>
               <option>Abu Dhabi</option>
@@ -103,7 +110,7 @@
           </div>
 
           <div class="field">
-            <label>Photo</label>
+            <label>Fotka</label>
             <input type="file" id="addFile" accept="image/*" />
           </div>
         </div>
@@ -114,32 +121,32 @@
             <div class="pill" id="addStatus">Ready</div>
 
             <div class="field">
-              <label>Result (you can edit)</label>
-              <input id="addPlate" class="input" placeholder="e.g. H 6403" />
+              <label>Výsledok (môžeš opraviť)</label>
+              <input id="addPlate" class="input" placeholder="napr. H 6403" />
             </div>
 
             <div class="field">
-              <label>Code (letter) – optional</label>
-              <input id="addCode" class="input" placeholder="e.g. H / N / U / J" />
+              <label>Kód (písmeno) – voliteľné</label>
+              <input id="addCode" class="input" placeholder="napr. H / N / U / J" />
             </div>
 
             <div class="field">
-              <label>Digits only</label>
-              <input id="addDigits" class="input" placeholder="e.g. 6403" />
+              <label>Číslo – len číslice</label>
+              <input id="addDigits" class="input" placeholder="napr. 6403" />
             </div>
 
             <label class="checkLine">
               <input type="checkbox" id="addNeedsReview" />
-              Needs review
+              Vyžaduje sa kontrola
             </label>
 
             <div class="actions">
               <button class="btn" id="btnDoOcr">OCR</button>
-              <button class="btnGold" id="btnSave">Save</button>
+              <button class="btnGold" id="btnSave">Uložiť</button>
             </div>
 
             <details class="details">
-              <summary>OCR candidates</summary>
+              <summary>OCR kandidáti</summary>
               <pre id="addCandidates">[]</pre>
             </details>
           </div>

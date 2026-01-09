@@ -155,28 +155,7 @@
     </section>
   </main>
 
-  <!-- Firebase imports (no bundler, no terminal) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
-      query, orderBy, limit, doc, updateDoc, deleteDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import {
-      getStorage, ref as sRef, uploadBytes, getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-    import {
-      getAuth, signInAnonymously, onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-    window.firebaseImports = {
-      initializeApp,
-      getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
-      query, orderBy, limit, doc, updateDoc, deleteDoc,
-      getStorage, sRef, uploadBytes, getDownloadURL,
-      getAuth, signInAnonymously, onAuthStateChanged
-    };
-  </script>
+  
 
 <!-- Firebase SDKs -->
 <script type="module">

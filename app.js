@@ -23,6 +23,41 @@ const storage = getStorage(app);
 
 const auth = getAuth(app);
 
+// DOPLŇ SEM TVOJ ADMIN UID z Firebase Authentication (riadok hlinka.chat@gmail.com)
+const ADMIN_UIDS = [
+  "3oY3fJdjGzbOIAdfcfBwzb60NHk2"
+];
+
+let currentUser = null;
+let isAdmin = false;
+
+function getAnonNickForUid(uid){
+  const key = `anonNick_${uid}`;
+  let nick = localStorage.getItem(key);
+  if(!nick){
+    nick = `Anon#${Math.floor(1000 + Math.random()*9000)}`;
+    localStorage.setItem(key, nick);
+  }
+  return nick;
+}
+
+function refreshUserPill(){
+  const nameEl = document.getElementById("userName");
+  const roleEl = document.querySelector("#userPill .muted");
+  if(!nameEl || !roleEl || !currentUser) return;
+
+  if(currentUser.isAnonymous){
+    nameEl.textContent = getAnonNickForUid(currentUser.uid);
+    roleEl.textContent = "(Anonym)";
+  } else {
+    nameEl.textContent = currentUser.email || "Admin";
+    roleEl.textContent = "(Admin)";
+  }
+}
+
+
+const auth = getAuth(app);
+
 let currentUser = null;
 let displayName = "";
 let displayRoleLabel = "";

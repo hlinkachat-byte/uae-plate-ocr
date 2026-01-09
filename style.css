@@ -427,3 +427,38 @@ pre{margin:0; white-space:pre-wrap; color:rgba(232,237,244,.78)}
     align-self: flex-start;
   }
 }
+/* === Preview placeholder s ikonou === */
+
+.previewRow{
+  position: relative;
+}
+
+/* keď ešte NIE JE obrázok */
+.previewRow:has(.previewImg:not([src]), 
+                 .previewImg[src=""])::before{
+  content: "📷";
+  font-size: 42px;
+  opacity: .35;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  pointer-events: none;
+}
+
+.previewRow:has(.previewImg:not([src]), 
+                 .previewImg[src=""])::after{
+  content: "Preview";
+  font-size: 14px;
+  opacity: .45;
+  position: absolute;
+  top: calc(50% + 22px);
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* keď už JE obrázok → placeholder zmizne */
+.previewImg[src]:not([src=""]){
+  background: transparent;
+}

@@ -346,3 +346,32 @@ pre{margin:0; white-space:pre-wrap; color:rgba(232,237,244,.78)}
   background: rgba(10,15,20,.92);
   border-top: 1px solid rgba(255,255,255,.06);
 }
+/* === Preview image – menšie, krajšie, mobile friendly === */
+
+.previewWrap{
+  margin-top: 12px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* samotný obrázok */
+.previewWrap img,
+.previewWrap canvas{
+  width: 100%;
+  height: auto;
+  max-height: 240px;        /* 👈 HLAVNÁ ZMENA – menšie preview */
+  object-fit: contain;
+  display: block;
+  border-radius: 14px;
+}
+
+/* mobil – ešte menšie */
+@media (max-width: 480px){
+  .previewWrap img,
+  .previewWrap canvas{
+    max-height: 180px;
+  }
+}

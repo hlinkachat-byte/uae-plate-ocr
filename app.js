@@ -48,7 +48,7 @@ const btnSave = document.getElementById("btnSave");
 const addCandidates = document.getElementById("addCandidates");
 
 // ===== Filters (ako na local)
-const EMIRATES = ["All","Dubai","Abu Dhabi","Sharjah","Ajman","Ras Al Khaimah","Fujairah","Umm Al Quwain"];
+const EMIRATES = ["UAE","Dubai","Abu Dhabi","Sharjah","Ajman","Ras Al Khaimah","Fujairah","Umm Al Quwain"];
 const DIGIT_FILTERS = [
   { key:"all", label:"All digits" },
   { key:"1", label:"1-digit" },
@@ -59,7 +59,7 @@ const DIGIT_FILTERS = [
 ];
 
 let state = {
-  emirate: "All",
+  emirate: "UAE",
   digitsKey: "all",
   view: "grid",
   sort: "new",
@@ -166,7 +166,7 @@ async function loadLatest(){
 
 // ===== Filters
 function matchesEmirate(item){
-  if(state.emirate==="All") return true;
+  if(state.emirate==="UAE") return true;
   return norm(item.emirate) === state.emirate;
 }
 function matchesDigits(item){

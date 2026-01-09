@@ -32,7 +32,7 @@
       <div class="appIcon"></div>
       <div class="brandText">
         <div class="appName">PlateVault DXB</div>
-        <div class="appSub">Súkromný katalóg evidenčných čísel · Netlify</div>
+        <div class="appSub">Private catalog · Netlify</div>
       </div>
     </div>
 
@@ -42,7 +42,7 @@
         <span id="userName">Anon#1853</span>
         <span class="muted">(Anonym)</span>
       </div>
-      <button class="btnGold" id="btnOpenAdd">+ Pridať</button>
+      <button class="btnGold" id="btnOpenAdd">+ Add</button>
     </div>
   </header>
 
@@ -50,15 +50,15 @@
     <!-- FILTER BAR -->
     <section class="filterBar">
       <div class="searchRow">
-        <input id="q" class="search" placeholder="Vyhľadať evidenčné číslo vozidla, kód, emirát…" />
+        <input id="q" class="search" placeholder="Search vehicle registration number, code, emirate…" />
         <select id="sort" class="select">
-          <option value="new" selected>Najnovšie</option>
-          <option value="old">Najstaršie</option>
+          <option value="new" selected>Latest</option>
+          <option value="old">Oldest</option>
         </select>
 
         <div class="viewToggle">
-          <button id="btnGrid" class="toggle on">Mriežka</button>
-          <button id="btnList" class="toggle">Zoznam</button>
+          <button id="btnGrid" class="toggle on">Grid</button>
+          <button id="btnList" class="toggle">List</button>
         </div>
       </div>
 
@@ -68,7 +68,7 @@
 
     <!-- COUNT -->
     <div class="countRow">
-      <div class="muted" id="countText">0 položky</div>
+      <div class="muted" id="countText">0 items</div>
     </div>
 
     <!-- GALLERY -->
@@ -77,10 +77,10 @@
 
   <!-- BOTTOM NAV -->
   <nav class="bottomNav">
-    <button class="navItem active" data-page="home">Domov</button>
-    <button class="navItem" data-page="add">Pridať</button>
-    <button class="navItem" data-page="stats">Štatistiky</button>
-    <button class="navItem" data-page="profile">Profil</button>
+    <button class="navItem active" data-page="home">Home</button>
+    <button class="navItem" data-page="add">Add</button>
+    <button class="navItem" data-page="stats">Statistics</button>
+    <button class="navItem" data-page="profile">Profile</button>
   </nav>
 
   <!-- ADD MODAL -->
@@ -88,8 +88,8 @@
     <div class="modalCard">
       <div class="modalHead">
         <div>
-          <div class="modalTitle">Pridať auto</div>
-          <div class="muted small">Upload fotky → OCR → kontrola → uložiť do katalógu</div>
+          <div class="modalTitle">Add a car</div>
+          <div class="muted small">Upload photo → OCR → check → save to catalog</div>
         </div>
         <button class="iconBtn" id="btnCloseAdd">✕</button>
       </div>
@@ -97,7 +97,7 @@
       <div class="modalBody">
         <div class="formGrid">
           <div class="field">
-            <label>Emirát</label>
+            <label>Emirates</label>
             <select id="addEmirate" class="select">
               <option>Dubai</option>
               <option>Abu Dhabi</option>
@@ -121,32 +121,32 @@
             <div class="pill" id="addStatus">Ready</div>
 
             <div class="field">
-              <label>Výsledok (môžeš opraviť)</label>
+              <label>Result (you can fix it)</label>
               <input id="addPlate" class="input" placeholder="napr. H 6403" />
             </div>
 
             <div class="field">
-              <label>Kód (písmeno) – voliteľné</label>
-              <input id="addCode" class="input" placeholder="napr. H / N / U / J" />
+              <label>Code (letter) – optional</label>
+              <input id="addCode" class="input" placeholder="e.g. H / N / U / J" />
             </div>
 
             <div class="field">
-              <label>Číslo – len číslice</label>
+              <label>Number – digits only</label>
               <input id="addDigits" class="input" placeholder="napr. 6403" />
             </div>
 
             <label class="checkLine">
               <input type="checkbox" id="addNeedsReview" />
-              Vyžaduje sa kontrola
+              Inspection required
             </label>
 
             <div class="actions">
               <button class="btn" id="btnDoOcr">OCR</button>
-              <button class="btnGold" id="btnSave">Uložiť</button>
+              <button class="btnGold" id="btnSave">Save</button>
             </div>
 
             <details class="details">
-              <summary>OCR kandidáti</summary>
+              <summary>OCR candidates</summary>
               <pre id="addCandidates">[]</pre>
             </details>
           </div>

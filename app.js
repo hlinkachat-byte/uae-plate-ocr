@@ -459,7 +459,10 @@ btnSave.onclick = async () => {
     setStatus("Uploading…");
 
     // upload to Storage
-    if(!currentUser){ alert("Auth not ready yet. Skús o chvíľu."); return; }
+    if(!currentUser){
+  alert("Auth not ready yet. Skús o chvíľu.");
+  return;
+}
 
 const ownerUid = currentUser.uid;
 const path = `plates/${ownerUid}/${Date.now()}_${Math.random().toString(16).slice(2)}_${f.name}`;

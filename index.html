@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UAE Plate OCR</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <h1>UAE Plate OCR</h1>
+  <nav>
+    <button id="tabUpload" class="active">Upload</button>
+    <button id="tabCatalog">Catalog</button>
+  </nav>
+</header>
+
+<main>
+  <!-- UPLOAD -->
+  <section id="uploadSection">
+    <h2>Upload & Scan</h2>
+
+    <label>Emirate</label>
+    <select id="emirate">
+      <option>Dubai</option>
+      <option>Abu Dhabi</option>
+      <option>Sharjah</option>
+      <option>Ajman</option>
+      <option>Fujairah</option>
+      <option>Ras Al Khaimah</option>
+      <option>Umm Al Quwain</option>
+    </select>
+
+    <label>Photo</label>
+    <input type="file" id="photo" accept="image/*">
+
+    <button id="scanBtn">Scan & Save</button>
+
+    <div id="result">
+      <strong>Plate:</strong> <span id="plateText">—</span>
+    </div>
+
+    <img id="preview">
+  </section>
+
+  <!-- CATALOG -->
+  <section id="catalogSection" style="display:none">
+    <h2>Catalog</h2>
+
+    <input type="text" id="search" placeholder="Search plate…">
+
+    <select id="filterEmirate">
+      <option value="">All Emirates</option>
+      <option>Dubai</option>
+      <option>Abu Dhabi</option>
+      <option>Sharjah</option>
+      <option>Ajman</option>
+      <option>Fujairah</option>
+      <option>Ras Al Khaimah</option>
+      <option>Umm Al Quwain</option>
+    </select>
+
+    <div id="gallery"></div>
+  </section>
+</main>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

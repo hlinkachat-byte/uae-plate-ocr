@@ -1,11 +1,15 @@
-// app.js
+// PlateVault DXB - app.js (English, no build tools)
+
+// Firebase imports are injected in index.html into window.firebaseImports
 const {
-  initializeApp, getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
-  serverTimestamp, doc, updateDoc, deleteDoc,
-  getStorage, sRef, uploadBytes, getDownloadURL, deleteObject
+  initializeApp,
+  getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
+  query, orderBy, limit, doc, updateDoc, deleteDoc,
+  getStorage, sRef, uploadBytes, getDownloadURL,
+  getAuth, signInAnonymously, onAuthStateChanged
 } = window.firebaseImports;
 
-// 1) DOPLŇ FIREBASE CONFIG (z Firebase Console → Project settings → Web app)
+// 1) PUT YOUR FIREBASE WEB CONFIG HERE
 const firebaseConfig = {
    apiKey: "AIzaSyCMR1qchPIQZUHBaM5M-6Q9-rLb-4Xw108",
   authDomain: "plate-hunter-19a0c.firebaseapp.com",
@@ -18,421 +22,651 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const auth = getAuth(app);
 
-// ===== UI refs
+// ---------- UI refs ----------
 const gallery = document.getElementById("gallery");
-const qEl = document.getElementById("q");
-const sortEl = document.getElementById("sort");
-const btnGrid = document.getElementById("btnGrid");
-const btnList = document.getElementById("btnList");
-const countText = document.getElementById("countText");
+const countInfo = document.getElementById("countInfo");
 
-const chipsEmirates = document.getElementById("chipsEmirates");
-const chipsDigits = document.getElementById("chipsDigits");
+const searchInput = document.getElementById("searchInput");
+const sortSelect = document.getElementById("sortSelect");
+const viewGrid = document.getElementById("viewGrid");
+const viewList = document.getElementById("viewList");
 
-const addModal = document.getElementById("addModal");
-const btnOpenAdd = document.getElementById("btnOpenAdd");
-const btnCloseAdd = document.getElementById("btnCloseAdd");
-const navItems = [...document.querySelectorAll(".navItem")];
+const userBadge = document.getElementById("userBadge");
+const btnAddTop = document.getElementById("btnAddTop");
 
-const addEmirate = document.getElementById("addEmirate");
-const addFile = document.getElementById("addFile");
-const addPreview = document.getElementById("addPreview");
-const addStatus = document.getElementById("addStatus");
-const addPlate = document.getElementById("addPlate");
-const addCode = document.getElementById("addCode");
-const addDigits = document.getElementById("addDigits");
-const addNeedsReview = document.getElementById("addNeedsReview");
-const btnDoOcr = document.getElementById("btnDoOcr");
+const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modalTitle");
+const modalClose = document.getElementById("modalClose");
+
+const fileInput = document.getElementById("fileInput");
+const previewImg = document.getElementById("previewImg");
+
+const plateTextInput = document.getElementById("plateTextInput");
+const codeInput = document.getElementById("codeInput");
+const numberInput = document.getElementById("numberInput");
+const emirateSelect = document.getElementById("emirateSelect");
+const needsReview = document.getElementById("needsReview");
+
+const btnOCR = document.getElementById("btnOCR");
 const btnSave = document.getElementById("btnSave");
-const addCandidates = document.getElementById("addCandidates");
+const uploadStatus = document.getElementById("uploadStatus");
+const ocrCandidates = document.getElementById("ocrCandidates");
 
-// ===== Filters (ako na local)
-const EMIRATES = ["Všetky","Dubai","Abu Dhabi","Sharjah","Ajman","Ras Al Khaimah","Fujairah","Umm Al Quwain"];
-const DIGIT_FILTERS = [
-  { key:"all", label:"Všetky číslice" },
-  { key:"1", label:"1-ciferný" },
-  { key:"2", label:"2-ciferný" },
-  { key:"3", label:"3-ciferný" },
-  { key:"45", label:"4–5" },
-  { key:"review", label:"Vyžaduje sa kontrola" },
-];
+const profilePanel = document.getElementById("profilePanel");
+const nameInput = document.getElementById("nameInput");
+const saveNameBtn = document.getElementById("saveNameBtn");
+const profileInfo = document.getElementById("profileInfo");
 
-let state = {
-  emirate: "Všetky",
-  digitsKey: "all",
-  view: "grid",
-  sort: "new",
-  q: "",
-  items: [],
-  filtered: []
-};
+const statsPanel = document.getElementById("statsPanel");
+const statsBox = document.getElementById("statsBox");
 
-// ===== Helpers
-const norm = (s) => (s || "").toString().trim();
-const onlyDigits = (s) => norm(s).replace(/\D+/g,"");
-const upper = (s) => norm(s).toUpperCase();
+const navBtns = [...document.querySelectorAll(".navbtn")];
+const emirateChips = [...document.querySelectorAll("[data-emirate]")];
+const digitsChips = [...document.querySelectorAll("[data-digits]")];
 
-function digitsBucket(n){
-  if(!n) return 0;
-  if(n.length===1) return 1;
-  if(n.length===2) return 2;
-  if(n.length===3) return 3;
-  if(n.length===4 || n.length===5) return 45;
-  return 99;
+// ---------- state ----------
+let currentUser = null;
+let isAdmin = false;
+let myProfileName = "Anonymous";
+
+let allPlates = [];
+let activeEmirate = "ALL";
+let activeDigits = "ALL";
+let viewMode = "grid";
+
+let editingId = null;
+let editingData = null;
+
+let selectedFile = null;
+let selectedFileObjectUrl = null;
+
+// ---------- helpers ----------
+const now = () => Date.now();
+
+function toast(msg) {
+  alert(msg);
 }
 
-// jednoduché rarity skóre ako v local (približne)
-function rarityScore(digits){
-  const n = onlyDigits(digits);
-  if(!n) return { label:"Vyžaduje kontrolu", score:0 };
-  if(n.length===1) return { label:"Extrémne vzácne", score:99 };
-  if(n.length===2) return { label:"Veľmi zriedkavé", score:95 };
-  if(n.length===3) return { label:"Zriedkavé", score:70 };
-  if(n.length===4) return { label:"Menej časté", score:55 };
-  if(n.length===5) return { label:"Bežnejšie", score:40 };
-  return { label:"Neznáme", score:0 };
+function setActiveChip(chips, predicate) {
+  chips.forEach(b => b.classList.toggle("active", predicate(b)));
 }
 
-function buildPlateText(code, digits){
-  const c = upper(code);
-  const d = onlyDigits(digits);
-  if(c && d) return `${c} ${d}`;
-  if(d) return d;
-  if(c) return c;
-  return "";
+function normalizePlateText(text) {
+  return (text || "").toUpperCase().replace(/\s+/g, " ").trim();
 }
 
-function setView(view){
-  state.view = view;
-  if(view==="grid"){
-    gallery.classList.remove("list");
-    gallery.classList.add("grid");
-    btnGrid.classList.add("on"); btnList.classList.remove("on");
+function computeDigitsBucket(numStr) {
+  const n = (numStr || "").replace(/\D/g, "");
+  if (!n) return "ALL";
+  if (n.length === 1) return "1";
+  if (n.length === 2) return "2";
+  if (n.length === 3) return "3";
+  return "4-5";
+}
+
+function extractPlateParts(text) {
+  const t = normalizePlateText(text);
+
+  // Find patterns like "N 55"
+  const m = t.match(/([A-Z])\s*([0-9]{1,5})/);
+  if (m) return { code: m[1], number: m[2] };
+
+  // else first number
+  const n = t.match(/([0-9]{1,5})/);
+  return { code: "", number: n ? n[1] : "" };
+}
+
+function rarityScore(numberStr) {
+  const n = (numberStr || "").replace(/\D/g, "");
+  if (!n) return 50;
+  if (n.length === 1) return 99;
+  if (n.length === 2) return 95;
+  if (n.length === 3) return 80;
+  return 55;
+}
+
+async function isAdminUid(uid) {
+  // admins/{uid} exists -> admin
+  const snap = await getDoc(doc(db, "admins", uid));
+  return snap.exists();
+}
+
+async function loadProfile(uid) {
+  const snap = await getDoc(doc(db, "profiles", uid));
+  if (snap.exists()) {
+    myProfileName = (snap.data().displayName || "Anonymous").toString();
   } else {
-    gallery.classList.remove("grid");
-    gallery.classList.add("list");
-    btnList.classList.add("on"); btnGrid.classList.remove("on");
+    myProfileName = "Anonymous";
   }
 }
 
-function openAdd(){
-  addModal.classList.add("show");
-  addModal.setAttribute("aria-hidden","false");
-}
-function closeAdd(){
-  addModal.classList.remove("show");
-  addModal.setAttribute("aria-hidden","true");
+function renderUserBadge() {
+  const uidShort = currentUser?.uid ? currentUser.uid.slice(0, 6) + "…" : "—";
+  userBadge.textContent = `${myProfileName} • ${isAdmin ? "ADMIN" : "ANON"} • ${uidShort}`;
+  profileInfo.textContent = `UID: ${currentUser?.uid || "-"} • Role: ${isAdmin ? "ADMIN" : "ANON"}`;
+  if (nameInput) nameInput.value = myProfileName === "Anonymous" ? "" : myProfileName;
 }
 
-function setStatus(text){
-  addStatus.textContent = text;
+function canEditPlate(p) {
+  const uid = currentUser?.uid;
+  if (!uid) return false;
+  return isAdmin || p.ownerUid === uid;
 }
 
-// ===== Chips UI
-function renderChips(){
-  chipsEmirates.innerHTML = "";
-  EMIRATES.forEach(e=>{
-    const b = document.createElement("button");
-    b.className = "chip" + (state.emirate===e ? " on":"");
-    b.textContent = e;
-    b.onclick = () => { state.emirate=e; renderChips(); applyFilters(); };
-    chipsEmirates.appendChild(b);
-  });
-
-  chipsDigits.innerHTML = "";
-  DIGIT_FILTERS.forEach(f=>{
-    const b = document.createElement("button");
-    b.className = "chip" + (state.digitsKey===f.key ? " on":"");
-    b.textContent = f.label;
-    b.onclick = () => { state.digitsKey=f.key; renderChips(); applyFilters(); };
-    chipsDigits.appendChild(b);
-  });
+// ---------- modal ----------
+function openModal(title) {
+  modalTitle.textContent = title;
+  modal.classList.remove("hidden");
 }
 
-// ===== Firestore load
-async function loadLatest(){
-  // 200 posledných (môžeme zvýšiť)
-  const col = collection(db, "plates");
-  const qy = query(col, orderBy("createdAt","desc"), limit(200));
-  const snap = await getDocs(qy);
-  const out = [];
-  snap.forEach(d=>{
-    out.push({ id: d.id, ...d.data() });
-  });
-  state.items = out;
-  applyFilters();
+function resetModalFields() {
+  uploadStatus.textContent = "";
+  ocrCandidates.innerHTML = "";
+
+  plateTextInput.value = "";
+  codeInput.value = "";
+  numberInput.value = "";
+  needsReview.checked = false;
+  emirateSelect.value = "Dubai";
+
+  fileInput.value = "";
+  selectedFile = null;
+
+  previewImg.removeAttribute("src");
+  delete previewImg.dataset.imageUrl;
+
+  if (selectedFileObjectUrl) URL.revokeObjectURL(selectedFileObjectUrl);
+  selectedFileObjectUrl = null;
 }
 
-// ===== Filters
-function matchesEmirate(item){
-  if(state.emirate==="Všetky") return true;
-  return norm(item.emirate) === state.emirate;
-}
-function matchesDigits(item){
-  const needReview = !!item.needsReview;
-  const d = onlyDigits(item.digits || item.plateDigits || "");
-  const b = digitsBucket(d);
-
-  if(state.digitsKey==="all") return true;
-  if(state.digitsKey==="review") return needReview || !d;
-  if(state.digitsKey==="45") return b===45;
-  return String(b)===state.digitsKey;
-}
-function matchesQuery(item){
-  const q = upper(state.q);
-  if(!q) return true;
-
-  const plate = upper(item.plateText || "");
-  const code = upper(item.code || "");
-  const digits = onlyDigits(item.digits || "");
-  const emir = upper(item.emirate || "");
-
-  return plate.includes(q) || code.includes(q) || digits.includes(onlyDigits(q)) || emir.includes(q);
+function closeModal() {
+  modal.classList.add("hidden");
+  editingId = null;
+  editingData = null;
+  resetModalFields();
 }
 
-function applyFilters(){
-  let arr = [...state.items];
+function openAdd() {
+  editingId = null;
+  editingData = null;
+  resetModalFields();
+  openModal("Add plate");
+}
+
+function openEdit(p) {
+  if (!canEditPlate(p)) return toast("No permission.");
+  editingId = p.id;
+  editingData = p;
+
+  resetModalFields();
+  openModal("Edit plate");
+
+  emirateSelect.value = p.emirate || "Dubai";
+  needsReview.checked = !!p.needsReview;
+  plateTextInput.value = p.plateText || "";
+  codeInput.value = p.code || "";
+  numberInput.value = p.number || "";
+
+  previewImg.src = p.imageUrl || "";
+}
+
+// ---------- tabs ----------
+function showTab(tab) {
+  navBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+
+  profilePanel.classList.toggle("hidden", tab !== "profile");
+  statsPanel.classList.toggle("hidden", tab !== "stats");
+
+  if (tab === "add") openAdd();
+  if (tab === "stats") renderStats();
+  if (tab === "profile") renderUserBadge();
+}
+
+// ---------- Firestore IO ----------
+async function loadPlates() {
+  const q = query(collection(db, "plates"), orderBy("createdAt", "desc"), limit(300));
+  const snap = await getDocs(q);
+
+  const arr = [];
+  snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+
+  allPlates = arr;
+  renderGallery();
+  renderStats();
+}
+
+async function savePlate({ imageUrl, plateText, code, number, emirate, needsReviewFlag }) {
+  const uid = currentUser?.uid;
+  if (!uid) return toast("Not signed in.");
+
+  const cleanText = normalizePlateText(plateText);
+  const cleanCode = (code || "").toUpperCase().trim();
+  const cleanNumber = (number || "").replace(/\D/g, "");
+
+  if (!cleanNumber) return toast("Number is required (digits only).");
+
+  if (editingId) {
+    // Update
+    const patch = {
+      plateText: cleanText,
+      code: cleanCode,
+      number: cleanNumber,
+      emirate,
+      needsReview: !!needsReviewFlag,
+      rarity: rarityScore(cleanNumber),
+      updatedAt: now()
+    };
+    if (imageUrl) patch.imageUrl = imageUrl;
+
+    await updateDoc(doc(db, "plates", editingId), patch);
+    toast("Updated");
+  } else {
+    // Create
+    const data = {
+      imageUrl: imageUrl || "",
+      plateText: cleanText,
+      code: cleanCode,
+      number: cleanNumber,
+      emirate,
+      needsReview: !!needsReviewFlag,
+      rarity: rarityScore(cleanNumber),
+
+      ownerUid: uid,
+      ownerName: myProfileName,
+
+      createdAt: now(),
+      updatedAt: now()
+    };
+
+    await addDoc(collection(db, "plates"), data);
+    toast("Saved");
+  }
+
+  await loadPlates();
+  closeModal();
+}
+
+async function deletePlate(p) {
+  if (!canEditPlate(p)) return toast("No permission.");
+  if (!confirm("Delete this plate record?")) return;
+
+  await deleteDoc(doc(db, "plates", p.id));
+  await loadPlates();
+}
+
+// ---------- gallery render ----------
+function renderGallery() {
+  const search = (searchInput.value || "").toLowerCase().trim();
+  let arr = [...allPlates];
+
+  // emirate filter
+  if (activeEmirate !== "ALL") {
+    arr = arr.filter(p => (p.emirate || "") === activeEmirate);
+  }
+
+  // digits filter
+  if (activeDigits === "REVIEW") {
+    arr = arr.filter(p => !!p.needsReview);
+  } else if (activeDigits !== "ALL") {
+    arr = arr.filter(p => computeDigitsBucket(p.number) === activeDigits);
+  }
+
+  // search
+  if (search) {
+    arr = arr.filter(p => {
+      const t = `${p.plateText || ""} ${p.code || ""} ${p.number || ""} ${p.emirate || ""}`.toLowerCase();
+      return t.includes(search);
+    });
+  }
 
   // sort
-  if(state.sort==="old") {
-    arr.reverse();
-  }
+  const sort = sortSelect.value;
+  if (sort === "old") arr.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  if (sort === "new") arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  if (sort === "rarity_desc") arr.sort((a, b) => (b.rarity || 0) - (a.rarity || 0));
+  if (sort === "rarity_asc") arr.sort((a, b) => (a.rarity || 0) - (b.rarity || 0));
 
-  arr = arr.filter(it => matchesEmirate(it) && matchesDigits(it) && matchesQuery(it));
-  state.filtered = arr;
+  countInfo.textContent = `${arr.length} item(s)`;
 
-  countText.textContent = `${arr.length} položky`;
-  renderGallery();
-}
-
-// ===== Render cards
-function renderGallery(){
+  gallery.className = `gallery ${viewMode}`;
   gallery.innerHTML = "";
-  state.filtered.forEach(item=>{
-    const a = document.createElement("a");
-    a.className = "card";
-    a.href = item.imageUrl || "#";
-    a.target = "_blank";
-    a.rel = "noopener";
 
-    const img = document.createElement("img");
-    img.className = "thumb";
-    img.src = item.imageUrl || "";
-    img.alt = "car";
-
-    const body = document.createElement("div");
-    body.className = "cardBody";
-
-    const line1 = document.createElement("div");
-    line1.className = "line1";
-
-    const dot = document.createElement("span");
-    dot.className = "greenDot";
-
-    const plate = document.createElement("div");
-    plate.className = "plateText";
-    plate.textContent = `${item.emirate || "—"} · ${item.plateText || "—"}`;
-
-    const badge = document.createElement("div");
-    badge.className = "badge" + (item.needsReview ? " review":"");
-    badge.textContent = item.needsReview ? "Vyžaduje kontrolu" : "OK";
-
-    line1.append(dot, plate, badge);
-
-    const rs = rarityScore(item.digits || "");
-    const rar = document.createElement("div");
-    rar.className = "rarity";
-    rar.textContent = `${rs.label} · ${rs.score}/100`;
-
-    const meta = document.createElement("div");
-    meta.className = "meta muted small";
-    const by = item.addedBy || "Anon#1853";
-    const dt = item.createdAt?.toDate ? item.createdAt.toDate() : null;
-    const dateStr = dt ? dt.toLocaleDateString("sk-SK") : "";
-    meta.textContent = `Pridal(a) ${by}${dateStr ? " · " + dateStr : ""}`;
-
-    body.append(line1, rar, meta);
-    a.append(img, body);
-
-    // Right-click / alt-click quick edit
-    a.addEventListener("click", (e) => {
-      // normálne otvorí obrázok v novej karte
-    });
-
-    gallery.appendChild(a);
-  });
+  arr.forEach(p => gallery.appendChild(renderCard(p)));
 }
 
-// ===== ADD FLOW
-addFile.addEventListener("change", () => {
-  const f = addFile.files?.[0];
-  if(!f) return;
-  addPreview.src = URL.createObjectURL(f);
-  setStatus("Photo ready");
-});
+function renderCard(p) {
+  const card = document.createElement("div");
+  card.className = "card" + (viewMode === "list" ? " list" : "");
 
-btnOpenAdd.onclick = openAdd;
-btnCloseAdd.onclick = closeAdd;
-addModal.addEventListener("click", (e) => {
-  if(e.target === addModal) closeAdd();
-});
+  const img = document.createElement("img");
+  img.src = p.imageUrl || "";
+  img.alt = p.plateText || "plate";
 
-// bottom nav -> otvor add
-navItems.forEach(btn=>{
-  btn.onclick = () => {
-    navItems.forEach(x=>x.classList.remove("active"));
-    btn.classList.add("active");
-    const page = btn.dataset.page;
-    if(page==="add") openAdd();
-  };
-});
+  const body = document.createElement("div");
+  body.className = "card-body";
 
-qEl.addEventListener("input", () => { state.q = qEl.value; applyFilters(); });
-sortEl.addEventListener("change", () => { state.sort = sortEl.value; applyFilters(); });
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.innerHTML = `<span class="dot"></span><span>${p.emirate || "-"}</span>`;
 
-btnGrid.onclick = () => setView("grid");
-btnList.onclick = () => setView("list");
+  const line = document.createElement("div");
+  line.className = "plateLine";
+  line.textContent = `${p.code ? p.code + " " : ""}${p.number || ""}`.trim() || (p.plateText || "");
 
-// OCR (cez Netlify function /api/ocr)
-async function doOcr(file){
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("emirate", addEmirate.value);
+  const rarity = document.createElement("div");
+  rarity.className = "rarity";
+  rarity.textContent = `Rarity: ${p.rarity || 0}/100`;
 
-  // Netlify automaticky mapuje functions cez /.netlify/functions/...
-  // Ak máš redirect na /api/*, nechaj /api/ocr. Inak použi /.netlify/functions/ocr
-  const res = await fetch("/.netlify/functions/ocr", {
+  const tags = document.createElement("div");
+  tags.className = "meta";
+  tags.style.marginTop = "8px";
+  tags.innerHTML = `
+    <span class="tag">${(p.ownerName || "Anonymous")}</span>
+    ${p.needsReview ? `<span class="tag review">Needs review</span>` : ""}
+  `;
+
+  const actions = document.createElement("div");
+  actions.className = "actions";
+
+  const btnOpen = document.createElement("button");
+  btnOpen.className = "btn";
+  btnOpen.textContent = "Open";
+  btnOpen.onclick = () => window.open(p.imageUrl, "_blank");
+
+  actions.appendChild(btnOpen);
+
+  if (canEditPlate(p)) {
+    const btnEdit = document.createElement("button");
+    btnEdit.className = "btn";
+    btnEdit.textContent = "Edit";
+    btnEdit.onclick = () => openEdit(p);
+
+    const btnDel = document.createElement("button");
+    btnDel.className = "btn danger";
+    btnDel.textContent = "Delete";
+    btnDel.onclick = () => deletePlate(p);
+
+    actions.appendChild(btnEdit);
+    actions.appendChild(btnDel);
+  }
+
+  body.appendChild(meta);
+  body.appendChild(line);
+  body.appendChild(rarity);
+  body.appendChild(tags);
+  body.appendChild(actions);
+
+  card.appendChild(img);
+  card.appendChild(body);
+  return card;
+}
+
+// ---------- stats ----------
+function renderStats() {
+  if (statsPanel.classList.contains("hidden")) return;
+
+  const total = allPlates.length;
+  const byEmirate = {};
+  const byDigits = { "1": 0, "2": 0, "3": 0, "4-5": 0 };
+  let needs = 0;
+
+  allPlates.forEach(p => {
+    const e = p.emirate || "Unknown";
+    byEmirate[e] = (byEmirate[e] || 0) + 1;
+
+    const d = computeDigitsBucket(p.number);
+    if (byDigits[d] !== undefined) byDigits[d] += 1;
+
+    if (p.needsReview) needs += 1;
+  });
+
+  const emirateLines = Object.entries(byEmirate)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("<br>");
+
+  statsBox.innerHTML = `
+    <div class="box"><b>Total plates:</b> ${total}</div>
+    <div class="box"><b>Needs review:</b> ${needs}</div>
+    <div class="box"><b>Digits:</b><br>
+      1-digit: ${byDigits["1"]}<br>
+      2-digit: ${byDigits["2"]}<br>
+      3-digit: ${byDigits["3"]}<br>
+      4–5: ${byDigits["4-5"]}
+    </div>
+    <div class="box"><b>By emirate:</b><br>${emirateLines || "-"}</div>
+  `;
+}
+
+// ---------- OCR ----------
+async function runOCR(imageUrl) {
+  uploadStatus.textContent = "OCR running…";
+
+  const r = await fetch("/.netlify/functions/ocr", {
     method: "POST",
-    body: fd
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ imageUrl })
   });
 
-  if(!res.ok) throw new Error("OCR failed");
-  return await res.json();
-}
+  const j = await r.json();
+  const raw = (j?.raw || "").toString();
 
-// veľmi jednoduché “upratanie” OCR textu
-function pickBestPlate(result){
-  const candidates = result?.candidates || [];
-  // očakávame niečo ako "H 6403" alebo aspoň digits
-  let best = { plateText:"", code:"", digits:"", confidence:0 };
+  const cleaned = normalizePlateText(raw)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  for(const c of candidates){
-    const t = upper(c.text || "");
-    const conf = Number(c.confidence || 0);
+  // candidates
+  const candidates = [];
+  const first = extractPlateParts(cleaned);
+  if (first.number) candidates.push(`${first.code ? first.code + " " : ""}${first.number}`.trim());
 
-    // extrahuj "LETTER + digits"
-    const m = t.match(/\b([A-Z])\s*[- ]?\s*(\d{1,5})\b/);
-    if(m){
-      const code = m[1];
-      const digits = m[2];
-      const plateText = `${code} ${digits}`;
-      const score = conf + (digits.length===1?20:digits.length===2?15:digits.length===3?8:0);
-      if(score > best.confidence){
-        best = { plateText, code, digits, confidence: score };
-      }
-      continue;
-    }
+  const matches = cleaned.match(/[A-Z]\s*[0-9]{1,5}/g) || [];
+  matches.slice(0, 10).forEach(m => candidates.push(normalizePlateText(m)));
 
-    // fallback: len čísla
-    const d = (t.match(/\b\d{1,5}\b/)||[])[0];
-    if(d){
-      const score = conf - 5;
-      if(score > best.confidence){
-        best = { plateText: d, code:"", digits:d, confidence: score };
-      }
-    }
+  const uniq = [...new Set(candidates)].slice(0, 10);
+
+  // Fill fields
+  if (uniq[0]) {
+    plateTextInput.value = uniq[0];
+    const parts = extractPlateParts(uniq[0]);
+    codeInput.value = parts.code || "";
+    numberInput.value = parts.number || "";
+  } else {
+    plateTextInput.value = cleaned.slice(0, 30);
+    const parts = extractPlateParts(cleaned);
+    codeInput.value = parts.code || "";
+    numberInput.value = parts.number || "";
   }
 
-  return { best, candidates };
+  // Render tags
+  ocrCandidates.innerHTML = "";
+  uniq.forEach(c => {
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = c;
+    tag.onclick = () => {
+      plateTextInput.value = c;
+      const parts = extractPlateParts(c);
+      codeInput.value = parts.code || "";
+      numberInput.value = parts.number || "";
+    };
+    ocrCandidates.appendChild(tag);
+  });
+
+  uploadStatus.textContent = raw ? "OCR done (editable)." : "OCR returned empty text. Type manually.";
 }
 
-btnDoOcr.onclick = async () => {
-  const f = addFile.files?.[0];
-  if(!f) return alert("Vyber fotku.");
-  try{
-    setStatus("OCR…");
-    const r = await doOcr(f);
-    const { best, candidates } = pickBestPlate(r);
-    addCandidates.textContent = JSON.stringify(candidates, null, 2);
+// ---------- events ----------
+btnAddTop.addEventListener("click", openAdd);
+modalClose.addEventListener("click", closeModal);
+modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
 
-    addPlate.value = best.plateText || "";
-    addCode.value = best.code || "";
-    addDigits.value = best.digits || "";
+viewGrid.addEventListener("click", () => {
+  viewMode = "grid";
+  setActiveChip([viewGrid, viewList], b => b === viewGrid);
+  renderGallery();
+});
+viewList.addEventListener("click", () => {
+  viewMode = "list";
+  setActiveChip([viewGrid, viewList], b => b === viewList);
+  renderGallery();
+});
 
-    // ak to vyzerá divne → needs review
-    const d = onlyDigits(addDigits.value);
-    const suspicious = !d || d.length > 5;
-    addNeedsReview.checked = suspicious || !!r.needsReview;
-    setStatus(best.plateText ? "OCR done" : "OCR weak (review)");
-  }catch(err){
-    console.error(err);
-    setStatus("OCR error");
-    alert("OCR zlyhalo. Skús inú fotku alebo oprav ručne.");
-  }
-};
+searchInput.addEventListener("input", renderGallery);
+sortSelect.addEventListener("change", renderGallery);
 
-btnSave.onclick = async () => {
-  const f = addFile.files?.[0];
-  if(!f) return alert("Vyber fotku.");
+emirateChips.forEach(b => b.addEventListener("click", () => {
+  activeEmirate = b.dataset.emirate;
+  setActiveChip(emirateChips, x => x.dataset.emirate === activeEmirate);
+  renderGallery();
+}));
 
-  const emirate = addEmirate.value;
-  const code = upper(addCode.value);
-  const digits = onlyDigits(addDigits.value);
-  const plateText = norm(addPlate.value) || buildPlateText(code, digits);
+digitsChips.forEach(b => b.addEventListener("click", () => {
+  activeDigits = b.dataset.digits;
+  setActiveChip(digitsChips, x => x.dataset.digits === activeDigits);
+  renderGallery();
+}));
 
-  if(!plateText) return alert("Doplň evidenčné číslo.");
+navBtns.forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 
-  try{
-    setStatus("Uploading…");
+fileInput.addEventListener("change", () => {
+  const f = fileInput.files?.[0];
+  selectedFile = f || null;
+  if (!selectedFile) return;
 
-    // upload to Storage
-    const path = `plates/${Date.now()}_${Math.random().toString(16).slice(2)}_${f.name}`;
-    const storageRef = sRef(storage, path);
-    await uploadBytes(storageRef, f);
+  if (selectedFileObjectUrl) URL.revokeObjectURL(selectedFileObjectUrl);
+  selectedFileObjectUrl = URL.createObjectURL(selectedFile);
+  previewImg.src = selectedFileObjectUrl;
+
+  uploadStatus.textContent = "";
+  ocrCandidates.innerHTML = "";
+  delete previewImg.dataset.imageUrl;
+});
+
+btnOCR.addEventListener("click", async () => {
+  try {
+    const uid = currentUser?.uid;
+    if (!uid) return toast("Not signed in.");
+
+    // If editing and no new file: OCR existing image URL
+    if (editingId && !selectedFile) {
+      const url = editingData?.imageUrl;
+      if (!url) return toast("No image URL.");
+      await runOCR(url);
+      return;
+    }
+
+    if (!selectedFile) return toast("Choose a file first.");
+
+    uploadStatus.textContent = "Uploading for OCR…";
+
+    // Upload under user folder so Storage rules can allow write
+    const storageRef = sRef(storage, `plates/${uid}/${now()}_${selectedFile.name}`);
+    await uploadBytes(storageRef, selectedFile);
     const imageUrl = await getDownloadURL(storageRef);
 
-    const rs = rarityScore(digits);
+    previewImg.src = imageUrl;
+    previewImg.dataset.imageUrl = imageUrl;
 
-    // save to Firestore
-    await addDoc(collection(db, "plates"), {
-      emirate,
-      code: code || "",
-      digits: digits || "",
-      plateText,
-      rarityLabel: rs.label,
-      rarityScore: rs.score,
-      needsReview: !!addNeedsReview.checked,
+    await runOCR(imageUrl);
+  } catch (e) {
+    console.error(e);
+    toast("OCR failed. Open DevTools Console.");
+  }
+});
+
+btnSave.addEventListener("click", async () => {
+  try {
+    const uid = currentUser?.uid;
+    if (!uid) return toast("Not signed in.");
+
+    uploadStatus.textContent = "Saving…";
+
+    let imageUrl = previewImg.dataset.imageUrl || "";
+
+    // If editing and no new uploaded file, keep old image
+    if (editingId && !imageUrl) {
+      imageUrl = editingData?.imageUrl || "";
+    }
+
+    // If adding new and user selected file but never ran OCR -> upload now
+    if (!editingId && selectedFile && !imageUrl) {
+      const storageRef = sRef(storage, `plates/${uid}/${now()}_${selectedFile.name}`);
+      await uploadBytes(storageRef, selectedFile);
+      imageUrl = await getDownloadURL(storageRef);
+    }
+
+    const plateText = plateTextInput.value;
+    const parts = extractPlateParts(plateText);
+
+    const code = (codeInput.value || parts.code || "").toUpperCase().trim();
+    const number = (numberInput.value || parts.number || "").replace(/\D/g, "");
+
+    await savePlate({
       imageUrl,
-      imagePath: path,
-      addedBy: document.getElementById("userName")?.textContent || "Anon",
-      createdAt: serverTimestamp()
+      plateText,
+      code,
+      number,
+      emirate: emirateSelect.value,
+      needsReviewFlag: needsReview.checked
     });
 
-    setStatus("Saved ✅");
-    closeAdd();
-
-    // reset form
-    addFile.value = "";
-    addPreview.src = "";
-    addPlate.value = "";
-    addCode.value = "";
-    addDigits.value = "";
-    addNeedsReview.checked = false;
-    addCandidates.textContent = "[]";
-
-    await loadLatest();
-  }catch(err){
-    console.error(err);
-    setStatus("Save error");
-    alert("Uloženie zlyhalo (Firebase config/Storage/Rules).");
+  } catch (e) {
+    console.error(e);
+    toast("Save failed. Open DevTools Console.");
   }
-};
-
-// ===== Init
-renderChips();
-setView("grid");
-loadLatest().catch(e=>{
-  console.error(e);
-  alert("Nepodarilo sa načítať dáta z Firestore. Skontroluj Firebase config + Firestore rules.");
 });
+
+saveNameBtn.addEventListener("click", async () => {
+  try {
+    const uid = currentUser?.uid;
+    if (!uid) return toast("Not signed in.");
+
+    const displayName = (nameInput.value || "").trim();
+    if (!displayName) return toast("Enter a name.");
+
+    await setDoc(doc(db, "profiles", uid), { displayName, updatedAt: now() }, { merge: true });
+    myProfileName = displayName;
+    renderUserBadge();
+    toast("Saved.");
+  } catch (e) {
+    console.error(e);
+    toast("Profile save failed.");
+  }
+});
+
+// ---------- auth bootstrap ----------
+async function boot() {
+  // Sign in anonymously
+  await signInAnonymously(auth);
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+
+    currentUser = user;
+
+    // role
+    isAdmin = await isAdminUid(user.uid);
+
+    // profile
+    await loadProfile(user.uid);
+
+    renderUserBadge();
+
+    // initial chip state
+    setActiveChip(emirateChips, b => b.dataset.emirate === activeEmirate);
+    setActiveChip(digitsChips, b => b.dataset.digits === activeDigits);
+    setActiveChip([viewGrid, viewList], b => b === viewGrid);
+
+    // default tab
+    showTab("home");
+
+    // load data
+    await loadPlates();
+  });
+}
+
+boot();

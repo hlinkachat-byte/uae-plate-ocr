@@ -5,7 +5,7 @@ const {
   getStorage, sRef, uploadBytes, getDownloadURL, deleteObject,
   getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut
 } = window.firebaseImports;
-} = window.firebaseImports;
+
 
 // 1) DOPLŇ FIREBASE CONFIG (z Firebase Console → Project settings → Web app)
 const firebaseConfig = {

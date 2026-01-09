@@ -178,6 +178,31 @@
     };
   </script>
 
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
+    query, orderBy, limit, doc, updateDoc, deleteDoc
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import {
+    getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+  import {
+    getAuth, signInAnonymously, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  window.firebaseImports = {
+    initializeApp,
+    getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
+    query, orderBy, limit, doc, updateDoc, deleteDoc,
+    getStorage, sRef, uploadBytes, getDownloadURL, deleteObject,
+    getAuth, signInAnonymously, onAuthStateChanged
+  };
+</script>
+
+<script src="app.js"></script>
+  
   <script src="./app.js"></script>
 </body>
 </html>

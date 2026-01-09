@@ -319,7 +319,7 @@ function renderGallery(){
 
     const meta = document.createElement("div");
     meta.className = "meta muted small";
-    const by = item.addedBy || "Anon#1853";
+    const by = item.ownerName || "Anon";
     const dt = item.createdAt?.toDate ? item.createdAt.toDate() : null;
     const dateStr = dt ? dt.toLocaleDateString("sk-SK") : "";
     meta.textContent = `Pridal(a) ${by}${dateStr ? " · " + dateStr : ""}`;

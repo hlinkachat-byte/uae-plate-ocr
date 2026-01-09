@@ -407,3 +407,23 @@ pre{margin:0; white-space:pre-wrap; color:rgba(232,237,244,.78)}
 .previewMeta{
   flex: 1;
 }
+/* === Mobile: preview musí byť NAD formulárom, nie vedľa === */
+@media (max-width: 560px){
+  .previewRow{
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .previewImg{
+    max-height: 220px;   /* aby bolo pekne vidno ale nezjedlo celý modal */
+  }
+
+  .previewMeta{
+    width: 100%;
+  }
+
+  /* nech sa pill "Ready" nelepí divne doprava */
+  #addStatus.pill{
+    align-self: flex-start;
+  }
+}

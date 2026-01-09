@@ -166,7 +166,7 @@ async function loadLatest(){
 
 // ===== Filters
 function matchesEmirate(item){
-  if(state.emirate==="Všetky") return true;
+  if(state.emirate==="All") return true;
   return norm(item.emirate) === state.emirate;
 }
 function matchesDigits(item){

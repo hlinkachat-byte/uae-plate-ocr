@@ -375,3 +375,35 @@ pre{margin:0; white-space:pre-wrap; color:rgba(232,237,244,.78)}
     max-height: 180px;
   }
 }
+/* === PREVIEW FIX – podľa real HTML (.previewRow, .previewImg) === */
+
+/* kontajner preview */
+.previewRow{
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 12px 0 16px;
+}
+
+/* samotný obrázok */
+.previewImg{
+  width: 100%;
+  max-width: 100%;
+  max-height: 180px;          /* 👈 ZMENŠENIE */
+  object-fit: contain;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* desktop – môže byť o trochu väčšie */
+@media (min-width: 768px){
+  .previewImg{
+    max-height: 240px;
+  }
+}
+
+/* pravý stĺpec (Ready + inputs) */
+.previewMeta{
+  flex: 1;
+}

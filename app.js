@@ -50,16 +50,16 @@ const addCandidates = document.getElementById("addCandidates");
 // ===== Filters (ako na local)
 const EMIRATES = ["Všetky","Dubai","Abu Dhabi","Sharjah","Ajman","Ras Al Khaimah","Fujairah","Umm Al Quwain"];
 const DIGIT_FILTERS = [
-  { key:"all", label:"Všetky číslice" },
-  { key:"1", label:"1-ciferný" },
-  { key:"2", label:"2-ciferný" },
-  { key:"3", label:"3-ciferný" },
+  { key:"all", label:"All digits" },
+  { key:"1", label:"1-digit" },
+  { key:"2", label:"2-digit" },
+  { key:"3", label:"3-digit" },
   { key:"45", label:"4–5" },
-  { key:"review", label:"Vyžaduje sa kontrola" },
+  { key:"review", label:"Inspection required" },
 ];
 
 let state = {
-  emirate: "Všetky",
+  emirate: "all",
   digitsKey: "all",
   view: "grid",
   sort: "new",
@@ -85,12 +85,12 @@ function digitsBucket(n){
 // jednoduché rarity skóre ako v local (približne)
 function rarityScore(digits){
   const n = onlyDigits(digits);
-  if(!n) return { label:"Vyžaduje kontrolu", score:0 };
-  if(n.length===1) return { label:"Extrémne vzácne", score:99 };
-  if(n.length===2) return { label:"Veľmi zriedkavé", score:95 };
-  if(n.length===3) return { label:"Zriedkavé", score:70 };
-  if(n.length===4) return { label:"Menej časté", score:55 };
-  if(n.length===5) return { label:"Bežnejšie", score:40 };
+  if(!n) return { label:"Inspection required", score:0 };
+  if(n.length===1) return { label:"Extremely rare", score:99 };
+  if(n.length===2) return { label:"Very rare", score:95 };
+  if(n.length===3) return { label:"Rare", score:70 };
+  if(n.length===4) return { label:"Uncommon", score:55 };
+  if(n.length===5) return { label:"More common", score:40 };
   return { label:"Neznáme", score:0 };
 }
 
@@ -368,20 +368,20 @@ btnDoOcr.onclick = async () => {
   }catch(err){
     console.error(err);
     setStatus("OCR error");
-    alert("OCR zlyhalo. Skús inú fotku alebo oprav ručne.");
+    alert("OCR failed. Try another photo or fix it manually.");
   }
 };
 
 btnSave.onclick = async () => {
   const f = addFile.files?.[0];
-  if(!f) return alert("Vyber fotku.");
+  if(!f) return alert("Select a photo.");
 
   const emirate = addEmirate.value;
   const code = upper(addCode.value);
   const digits = onlyDigits(addDigits.value);
   const plateText = norm(addPlate.value) || buildPlateText(code, digits);
 
-  if(!plateText) return alert("Doplň evidenčné číslo.");
+  if(!plateText) return alert("Fill in the registration number.");
 
   try{
     setStatus("Uploading…");

@@ -320,3 +320,29 @@ pre{margin:0; white-space:pre-wrap; color:rgba(232,237,244,.78)}
 .btnTiny.danger{
   border-color: rgba(255,0,0,.25);
 }
+/* === iPhone/mobile fix: modal musí byť scrollovateľný, aby bolo vidno Save === */
+.modalCard{
+  max-height: calc(100dvh - 36px);   /* zmestí sa do obrazovky */
+  display: flex;
+  flex-direction: column;
+}
+
+.modalBody{
+  overflow: auto;                    /* toto je kľúč */
+  -webkit-overflow-scrolling: touch; /* plynulý scroll na iOS */
+  padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+/* aby sa spodné menu neprekrývalo s obsahom stránky */
+.wrap{
+  margin-bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+}
+
+/* voliteľné: ak chceš mať tlačidlá vždy po ruke v modale */
+.modal .actions{
+  position: sticky;
+  bottom: 0;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(10,15,20,.92);
+  border-top: 1px solid rgba(255,255,255,.06);
+}

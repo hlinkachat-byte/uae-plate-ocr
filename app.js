@@ -10,7 +10,7 @@ const firebaseConfig = {
    apiKey: "AIzaSyCMR1qchPIQZUHBaM5M-6Q9-rLb-4Xw108",
   authDomain: "plate-hunter-19a0c.firebaseapp.com",
   projectId: "plate-hunter-19a0c",
-  storageBucket: "plate-hunter-19a0c.firebasestorage.app",
+  storageBucket: "plate-hunter-19a0c.appspot.com",
   messagingSenderId: "750670305068",
   appId: "1:750670305068:web:0e3813fe946b57f69cbe89"
 };

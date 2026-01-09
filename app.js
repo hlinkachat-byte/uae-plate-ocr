@@ -20,6 +20,41 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+const auth = getAuth(app);
+
+let currentUser = null;
+let displayName = "";
+let displayRoleLabel = "";
+
+function getAnonNickForUid(uid){
+  const key = `anonNick_${uid}`;
+  let nick = localStorage.getItem(key);
+  if(!nick){
+    const n = String(Math.floor(1000 + Math.random()*9000));
+    nick = `Anon#${n}`;
+    localStorage.setItem(key, nick);
+  }
+  return nick;
+}
+
+function setUserPill(user){
+  const nameEl = document.getElementById("userName");
+  const roleEl = document.querySelector("#userPill .muted");
+  if(!nameEl || !roleEl) return;
+
+  if(user.isAnonymous){
+    displayName = getAnonNickForUid(user.uid);
+    displayRoleLabel = "(Anonym)";
+  }else{
+    displayName = user.email || "Admin";
+    displayRoleLabel = "(Admin)";
+  }
+
+  nameEl.textContent = displayName;
+  roleEl.textContent = displayRoleLabel;
+}
+
+
 // ===== UI refs
 const gallery = document.getElementById("gallery");
 const qEl = document.getElementById("q");

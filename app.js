@@ -506,6 +506,48 @@ ownerType: currentUser?.isAnonymous ? "anonymous" : "admin",
   }
 };
 
+onAuthStateChanged(auth, async (u)=>{
+  currentUser = u;
+
+  if(!currentUser){
+    await signInAnonymously(auth);
+    return;
+  }
+
+  isAdmin = !currentUser.isAnonymous && ADMIN_UIDS.includes(currentUser.uid);
+  refreshUserPill();
+
+  // pre istotu reload listu, nech sa zobrazia Edit/Delete tlačidlá
+  applyFilters();
+});
+
+const userPill = document.getElementById("userPill");
+if(userPill){
+  userPill.addEventListener("click", async ()=>{
+    if(!currentUser) return;
+
+    if(currentUser.isAnonymous){
+      if(!confirm("Prihlásiť sa ako ADMIN?")) return;
+      const email = prompt("Admin email:");
+      if(!email) return;
+      const pass = prompt("Admin password:");
+      if(!pass) return;
+
+      try{
+        await signInWithEmailAndPassword(auth, email.trim(), pass);
+        alert("Admin prihlásený.");
+      }catch(e){
+        console.error(e);
+        alert("Admin login failed: " + (e?.message || ""));
+      }
+    } else {
+      if(!confirm("Odhlásiť ADMINa a prejsť späť na anonym?")) return;
+      await signOut(auth);
+      await signInAnonymously(auth);
+    }
+  });
+}
+
 // ===== Auth init
 onAuthStateChanged(auth, async (u)=>{
   currentUser = u;

@@ -122,7 +122,7 @@ const DIGIT_FILTERS = [
 
 let state = {
   emirate: "UAE",
-  digitsKey: "1",
+  digitsKey: "All digits",
   view: "grid",
   sort: "new",
   q: "",

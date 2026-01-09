@@ -174,7 +174,7 @@ function matchesDigits(item){
   const d = onlyDigits(item.digits || item.plateDigits || "");
   const b = digitsBucket(d);
 
-  if(state.digitsKey==="all") return true;
+  if(state.digitsKey==="All") return true;
   if(state.digitsKey==="review") return needReview || !d;
   if(state.digitsKey==="45") return b===45;
   return String(b)===state.digitsKey;

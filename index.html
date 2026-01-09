@@ -9,135 +9,69 @@
 </head>
 
 <body>
+  <h1>PlateVault DXB</h1>
+  <p>Private license plate catalog</p>
 
-  <header>
-    <h1>PlateVault DXB</h1>
-    <p>Private license plate catalog</p>
-  </header>
+  <!-- FILTERS -->
+  <div id="filters">
+    <button data-emirate="all">All</button>
+    <button data-emirate="Dubai">Dubai</button>
+    <button data-emirate="Abu Dhabi">Abu Dhabi</button>
+    <button data-emirate="Sharjah">Sharjah</button>
+    <button data-emirate="Ajman">Ajman</button>
+    <button data-emirate="Ras Al Khaimah">Ras Al Khaimah</button>
+    <button data-emirate="Fujairah">Fujairah</button>
+    <button data-emirate="Umm Al Quwain">Umm Al Quwain</button>
+  </div>
 
-  <main>
+  <!-- ADD PLATE -->
+  <h2>Add plate</h2>
+  <input type="file" id="fileInput" />
+  <input type="text" id="plateCode" placeholder="Code (optional)" />
+  <input type="number" id="plateNumber" placeholder="Number" />
+  <input type="text" id="emirate" placeholder="Emirate" />
+  <label>
+    <input type="checkbox" id="needsReview" />
+    Requires review
+  </label>
+  <br /><br />
+  <button id="uploadBtn">Upload</button>
 
-    <!-- SEARCH / FILTERS -->
-    <section id="filters">
-      <input
-        type="text"
-        id="searchInput"
-        placeholder="Search plate number, code, emirate..."
-      />
+  <!-- PROFILE -->
+  <h2>Profile</h2>
+  <input type="text" id="displayName" placeholder="Your display name" />
+  <button id="saveProfile">Save profile</button>
 
-      <div id="emirateFilters">
-        <button data-emirate="all">All</button>
-        <button data-emirate="Dubai">Dubai</button>
-        <button data-emirate="Abu Dhabi">Abu Dhabi</button>
-        <button data-emirate="Sharjah">Sharjah</button>
-        <button data-emirate="Ajman">Ajman</button>
-        <button data-emirate="Ras Al Khaimah">Ras Al Khaimah</button>
-        <button data-emirate="Fujairah">Fujairah</button>
-        <button data-emirate="Umm Al Quwain">Umm Al Quwain</button>
-      </div>
-    </section>
+  <hr />
 
-    <!-- GALLERY -->
-    <section id="gallery"></section>
+  <!-- GALLERY -->
+  <div id="gallery"></div>
 
-    <!-- INFO -->
-    <div id="countInfo"></div>
-
-    <!-- ADD PLATE -->
-    <section id="addPlate">
-      <h2>Add plate</h2>
-
-      <input type="file" id="photoInput" accept="image/*" />
-
-      <input type="text" id="plateCode" placeholder="Code (optional)" />
-      <input type="number" id="plateNumber" placeholder="Number" />
-      <input type="text" id="emirate" placeholder="Emirate" />
-
-      <label>
-        <input type="checkbox" id="needsReview" />
-        Requires review
-      </label>
-
-      <button id="uploadBtn">Upload</button>
-    </section>
-
-    <!-- PROFILE -->
-    <section id="profile">
-      <h2>Profile</h2>
-
-      <input
-        type="text"
-        id="displayName"
-        placeholder="Your display name"
-      />
-      <button id="saveProfile">Save profile</button>
-
-      <p id="userRole"></p>
-    </section>
-
-  </main>
-
-  <!-- 🔥 FIREBASE SDKs (ONE PLACE ONLY) -->
+  <!-- FIREBASE SDK (ONE TIME ONLY) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
     import {
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs,
-      getDoc,
-      setDoc,
-      query,
-      orderBy,
-      limit,
-      doc,
-      updateDoc,
-      deleteDoc
+      getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
+      query, orderBy, limit, doc, updateDoc, deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
     import {
-      getStorage,
-      ref as sRef,
-      uploadBytes,
-      getDownloadURL,
-      deleteObject
+      getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
     import {
-      getAuth,
-      signInAnonymously,
-      onAuthStateChanged
+      getAuth, signInAnonymously, onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    // 🔗 expose to app.js
+    // 👇 expose EVERYTHING for app.js
     window.firebaseImports = {
       initializeApp,
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs,
-      getDoc,
-      setDoc,
-      query,
-      orderBy,
-      limit,
-      doc,
-      updateDoc,
-      deleteDoc,
-      getStorage,
-      sRef,
-      uploadBytes,
-      getDownloadURL,
-      deleteObject,
-      getAuth,
-      signInAnonymously,
-      onAuthStateChanged
+      getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
+      query, orderBy, limit, doc, updateDoc, deleteDoc,
+      getStorage, sRef, uploadBytes, getDownloadURL, deleteObject,
+      getAuth, signInAnonymously, onAuthStateChanged
     };
   </script>
 
   <!-- APP LOGIC -->
   <script src="app.js"></script>
-
 </body>
 </html>

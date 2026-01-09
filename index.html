@@ -1,70 +1,160 @@
 <!doctype html>
-<html lang="en">
+<html lang="sk">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>UAE Plate OCR</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PlateVault DXB</title>
   <link rel="stylesheet" href="./style.css" />
+
+  <!-- Firebase (modular, CDN) -->
+  <script type="module">
+    // Tento blok len pripraví globálne "firebaseImports" pre app.js
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
+      serverTimestamp, doc, updateDoc, deleteDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+    window.firebaseImports = {
+      initializeApp, getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
+      serverTimestamp, doc, updateDoc, deleteDoc,
+      getStorage, sRef, uploadBytes, getDownloadURL, deleteObject
+    };
+  </script>
 </head>
+
 <body>
-
-<header class="topbar">
-  <h1>UAE Plate OCR</h1>
-  <nav>
-    <button id="tabUpload" class="active">Upload</button>
-    <button id="tabCatalog">Catalog</button>
-  </nav>
-</header>
-
-<main>
-  <!-- UPLOAD -->
-  <section id="uploadSection">
-    <h2>Upload & Scan</h2>
-
-    <label>Emirate</label>
-    <select id="emirate">
-      <option>Dubai</option>
-      <option>Abu Dhabi</option>
-      <option>Sharjah</option>
-      <option>Ajman</option>
-      <option>Fujairah</option>
-      <option>Ras Al Khaimah</option>
-      <option>Umm Al Quwain</option>
-    </select>
-
-    <label>Photo</label>
-    <input type="file" id="photo" accept="image/*">
-
-    <button id="scanBtn">Scan & Save</button>
-
-    <div id="result">
-      <strong>Plate:</strong> <span id="plateText">—</span>
+  <header class="top">
+    <div class="brand">
+      <div class="appIcon"></div>
+      <div class="brandText">
+        <div class="appName">PlateVault DXB</div>
+        <div class="appSub">Súkromný katalóg evidenčných čísel · Netlify</div>
+      </div>
     </div>
 
-    <img id="preview">
-  </section>
+    <div class="topRight">
+      <div class="userPill" id="userPill">
+        <span class="dot"></span>
+        <span id="userName">Anon#1853</span>
+        <span class="muted">(Anonym)</span>
+      </div>
+      <button class="btnGold" id="btnOpenAdd">+ Pridať</button>
+    </div>
+  </header>
 
-  <!-- CATALOG -->
-  <section id="catalogSection" style="display:none">
-    <h2>Catalog</h2>
+  <main class="wrap">
+    <!-- FILTER BAR -->
+    <section class="filterBar">
+      <div class="searchRow">
+        <input id="q" class="search" placeholder="Vyhľadať evidenčné číslo vozidla, kód, emirát…" />
+        <select id="sort" class="select">
+          <option value="new" selected>Najnovšie</option>
+          <option value="old">Najstaršie</option>
+        </select>
 
-    <input type="text" id="search" placeholder="Search plate…">
+        <div class="viewToggle">
+          <button id="btnGrid" class="toggle on">Mriežka</button>
+          <button id="btnList" class="toggle">Zoznam</button>
+        </div>
+      </div>
 
-    <select id="filterEmirate">
-      <option value="">All Emirates</option>
-      <option>Dubai</option>
-      <option>Abu Dhabi</option>
-      <option>Sharjah</option>
-      <option>Ajman</option>
-      <option>Fujairah</option>
-      <option>Ras Al Khaimah</option>
-      <option>Umm Al Quwain</option>
-    </select>
+      <div class="chipsRow" id="chipsEmirates"></div>
+      <div class="chipsRow" id="chipsDigits"></div>
+    </section>
 
-    <div id="gallery"></div>
-  </section>
-</main>
+    <!-- COUNT -->
+    <div class="countRow">
+      <div class="muted" id="countText">0 položky</div>
+    </div>
 
-<script type="module" src="./app.js"></script>
+    <!-- GALLERY -->
+    <section id="gallery" class="gallery grid"></section>
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottomNav">
+    <button class="navItem active" data-page="home">Domov</button>
+    <button class="navItem" data-page="add">Pridať</button>
+    <button class="navItem" data-page="stats">Štatistiky</button>
+    <button class="navItem" data-page="profile">Profil</button>
+  </nav>
+
+  <!-- ADD MODAL -->
+  <div class="modal" id="addModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHead">
+        <div>
+          <div class="modalTitle">Pridať auto</div>
+          <div class="muted small">Upload fotky → OCR → kontrola → uložiť do katalógu</div>
+        </div>
+        <button class="iconBtn" id="btnCloseAdd">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="formGrid">
+          <div class="field">
+            <label>Emirát</label>
+            <select id="addEmirate" class="select">
+              <option>Dubai</option>
+              <option>Abu Dhabi</option>
+              <option>Sharjah</option>
+              <option>Ajman</option>
+              <option>Ras Al Khaimah</option>
+              <option>Fujairah</option>
+              <option>Umm Al Quwain</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Fotka</label>
+            <input type="file" id="addFile" accept="image/*" />
+          </div>
+        </div>
+
+        <div class="previewRow">
+          <img id="addPreview" class="previewImg" alt="preview" />
+          <div class="previewMeta">
+            <div class="pill" id="addStatus">Ready</div>
+
+            <div class="field">
+              <label>Výsledok (môžeš opraviť)</label>
+              <input id="addPlate" class="input" placeholder="napr. H 6403" />
+            </div>
+
+            <div class="field">
+              <label>Kód (písmeno) – voliteľné</label>
+              <input id="addCode" class="input" placeholder="napr. H / N / U / J" />
+            </div>
+
+            <div class="field">
+              <label>Číslo – len číslice</label>
+              <input id="addDigits" class="input" placeholder="napr. 6403" />
+            </div>
+
+            <label class="checkLine">
+              <input type="checkbox" id="addNeedsReview" />
+              Vyžaduje sa kontrola
+            </label>
+
+            <div class="actions">
+              <button class="btn" id="btnDoOcr">OCR</button>
+              <button class="btnGold" id="btnSave">Uložiť</button>
+            </div>
+
+            <details class="details">
+              <summary>OCR kandidáti</summary>
+              <pre id="addCandidates">[]</pre>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
 </body>
 </html>

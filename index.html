@@ -18,6 +18,12 @@
       getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+import {
+  getAuth,
+  signInAnonymously,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    
     window.firebaseImports = {
       initializeApp, getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
       serverTimestamp, doc, updateDoc, deleteDoc,

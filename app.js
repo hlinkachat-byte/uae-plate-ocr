@@ -1,13 +1,18 @@
 // PlateVault DXB - app.js (English, no build tools)
 
-// Firebase imports are injected in index.html into window.firebaseImports
-const {
-  initializeApp,
+// app.js – ES MODULE (required)
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
   getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
-  query, orderBy, limit, doc, updateDoc, deleteDoc,
-  getStorage, sRef, uploadBytes, getDownloadURL,
+  query, orderBy, limit, doc, updateDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import {
   getAuth, signInAnonymously, onAuthStateChanged
-} = window.firebaseImports;
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // 1) PUT YOUR FIREBASE WEB CONFIG HERE
 const firebaseConfig = {

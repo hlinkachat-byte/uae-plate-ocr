@@ -1,166 +1,183 @@
 <!doctype html>
-<html lang="sk">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PlateVault DXB</title>
   <link rel="stylesheet" href="./style.css" />
-
-  <!-- Firebase (modular, CDN) -->
-  <script type="module">
-    // Tento blok len pripraví globálne "firebaseImports" pre app.js
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
-      serverTimestamp, doc, updateDoc, deleteDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import {
-      getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-import {
-  getAuth,
-  signInAnonymously,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    
-    window.firebaseImports = {
-      initializeApp, getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
-      serverTimestamp, doc, updateDoc, deleteDoc,
-      getStorage, sRef, uploadBytes, getDownloadURL, deleteObject
-    };
-  </script>
 </head>
 
 <body>
-  <header class="top">
+  <header class="topbar">
     <div class="brand">
-      <div class="appIcon"></div>
-      <div class="brandText">
-        <div class="appName">PlateVault DXB</div>
-        <div class="appSub">Súkromný katalóg evidenčných čísel · Netlify</div>
+      <div class="logo"></div>
+      <div>
+        <div class="title">PlateVault DXB</div>
+        <div class="sub">Private plate catalog • Netlify</div>
       </div>
     </div>
 
-    <div class="topRight">
-      <div class="userPill" id="userPill">
-        <span class="dot"></span>
-        <span id="userName">Anon#1853</span>
-        <span class="muted">(Anonym)</span>
-      </div>
-      <button class="btnGold" id="btnOpenAdd">+ Pridať</button>
+    <div class="top-actions">
+      <div id="userBadge" class="badge">Loading…</div>
+      <button id="btnAddTop" class="btn primary">+ Add</button>
     </div>
   </header>
 
   <main class="wrap">
-    <!-- FILTER BAR -->
-    <section class="filterBar">
-      <div class="searchRow">
-        <input id="q" class="search" placeholder="Vyhľadať evidenčné číslo vozidla, kód, emirát…" />
-        <select id="sort" class="select">
-          <option value="new" selected>Najnovšie</option>
-          <option value="old">Najstaršie</option>
+    <!-- SEARCH + FILTERS -->
+    <section class="panel">
+      <div class="row">
+        <input id="searchInput" class="input" placeholder="Search plate text, code, emirate…" />
+        <select id="sortSelect" class="select">
+          <option value="new">Newest</option>
+          <option value="old">Oldest</option>
+          <option value="rarity_desc">Rarity ↓</option>
+          <option value="rarity_asc">Rarity ↑</option>
         </select>
-
-        <div class="viewToggle">
-          <button id="btnGrid" class="toggle on">Mriežka</button>
-          <button id="btnList" class="toggle">Zoznam</button>
-        </div>
+        <button id="viewGrid" class="btn chip active">Grid</button>
+        <button id="viewList" class="btn chip">List</button>
       </div>
 
-      <div class="chipsRow" id="chipsEmirates"></div>
-      <div class="chipsRow" id="chipsDigits"></div>
+      <div class="chips">
+        <button class="btn chip active" data-emirate="ALL">All</button>
+        <button class="btn chip" data-emirate="Dubai">Dubai</button>
+        <button class="btn chip" data-emirate="Abu Dhabi">Abu Dhabi</button>
+        <button class="btn chip" data-emirate="Sharjah">Sharjah</button>
+        <button class="btn chip" data-emirate="Ajman">Ajman</button>
+        <button class="btn chip" data-emirate="Ras Al Khaimah">Ras Al Khaimah</button>
+        <button class="btn chip" data-emirate="Fujairah">Fujairah</button>
+        <button class="btn chip" data-emirate="Umm Al Quwain">Umm Al Quwain</button>
+      </div>
+
+      <div class="chips">
+        <button class="btn chip active" data-digits="ALL">All digits</button>
+        <button class="btn chip" data-digits="1">1-digit</button>
+        <button class="btn chip" data-digits="2">2-digit</button>
+        <button class="btn chip" data-digits="3">3-digit</button>
+        <button class="btn chip" data-digits="4-5">4–5</button>
+        <button class="btn chip" data-digits="REVIEW">Needs review</button>
+      </div>
     </section>
 
-    <!-- COUNT -->
-    <div class="countRow">
-      <div class="muted" id="countText">0 položky</div>
+    <!-- GALLERY -->
+    <section class="panel">
+      <div class="panel-head">
+        <div class="muted" id="countInfo">0 item(s)</div>
+      </div>
+      <div id="gallery" class="gallery grid"></div>
+    </section>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottomnav">
+      <button class="navbtn active" data-tab="home">Home</button>
+      <button class="navbtn" data-tab="add">Add</button>
+      <button class="navbtn" data-tab="stats">Stats</button>
+      <button class="navbtn" data-tab="profile">Profile</button>
+    </nav>
+
+    <!-- MODAL: ADD / EDIT -->
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-head">
+          <div id="modalTitle" class="modal-title">Add plate</div>
+          <button id="modalClose" class="btn">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="grid2">
+            <div>
+              <label class="label">Photo</label>
+              <input id="fileInput" type="file" accept="image/*" class="input" />
+              <div class="hint">Upload → OCR → Save</div>
+
+              <div class="preview">
+                <img id="previewImg" alt="" />
+              </div>
+            </div>
+
+            <div>
+              <label class="label">OCR result (editable)</label>
+              <input id="plateTextInput" class="input" placeholder="e.g. N 55" />
+
+              <label class="label">Code (letter) — optional</label>
+              <input id="codeInput" class="input" placeholder="e.g. N" />
+
+              <label class="label">Number (digits only)</label>
+              <input id="numberInput" class="input" placeholder="e.g. 55" />
+
+              <label class="label">Emirate</label>
+              <select id="emirateSelect" class="select">
+                <option>Dubai</option>
+                <option>Abu Dhabi</option>
+                <option>Sharjah</option>
+                <option>Ajman</option>
+                <option>Ras Al Khaimah</option>
+                <option>Fujairah</option>
+                <option>Umm Al Quwain</option>
+              </select>
+
+              <div class="row">
+                <button id="btnOCR" class="btn">OCR</button>
+                <button id="btnSave" class="btn primary">Save</button>
+              </div>
+
+              <label class="check">
+                <input id="needsReview" type="checkbox" />
+                Needs review
+              </label>
+
+              <details class="details">
+                <summary>OCR candidates</summary>
+                <div id="ocrCandidates" class="candidates"></div>
+              </details>
+
+              <div id="uploadStatus" class="muted"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- GALLERY -->
-    <section id="gallery" class="gallery grid"></section>
+    <!-- PROFILE PANEL (inline) -->
+    <section id="profilePanel" class="panel hidden">
+      <h3>Profile</h3>
+      <div class="row">
+        <input id="nameInput" class="input" placeholder="Your display name" />
+        <button id="saveNameBtn" class="btn primary">Save name</button>
+      </div>
+      <div class="muted" id="profileInfo"></div>
+    </section>
+
+    <!-- STATS PANEL (inline) -->
+    <section id="statsPanel" class="panel hidden">
+      <h3>Stats</h3>
+      <div id="statsBox" class="stats"></div>
+    </section>
   </main>
 
-  <!-- BOTTOM NAV -->
-  <nav class="bottomNav">
-    <button class="navItem active" data-page="home">Domov</button>
-    <button class="navItem" data-page="add">Pridať</button>
-    <button class="navItem" data-page="stats">Štatistiky</button>
-    <button class="navItem" data-page="profile">Profil</button>
-  </nav>
+  <!-- Firebase imports (no bundler, no terminal) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
+      query, orderBy, limit, doc, updateDoc, deleteDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getStorage, ref as sRef, uploadBytes, getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import {
+      getAuth, signInAnonymously, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  <!-- ADD MODAL -->
-  <div class="modal" id="addModal" aria-hidden="true">
-    <div class="modalCard">
-      <div class="modalHead">
-        <div>
-          <div class="modalTitle">Pridať auto</div>
-          <div class="muted small">Upload fotky → OCR → kontrola → uložiť do katalógu</div>
-        </div>
-        <button class="iconBtn" id="btnCloseAdd">✕</button>
-      </div>
+    window.firebaseImports = {
+      initializeApp,
+      getFirestore, collection, addDoc, getDocs, getDoc, setDoc,
+      query, orderBy, limit, doc, updateDoc, deleteDoc,
+      getStorage, sRef, uploadBytes, getDownloadURL,
+      getAuth, signInAnonymously, onAuthStateChanged
+    };
+  </script>
 
-      <div class="modalBody">
-        <div class="formGrid">
-          <div class="field">
-            <label>Emirát</label>
-            <select id="addEmirate" class="select">
-              <option>Dubai</option>
-              <option>Abu Dhabi</option>
-              <option>Sharjah</option>
-              <option>Ajman</option>
-              <option>Ras Al Khaimah</option>
-              <option>Fujairah</option>
-              <option>Umm Al Quwain</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>Fotka</label>
-            <input type="file" id="addFile" accept="image/*" />
-          </div>
-        </div>
-
-        <div class="previewRow">
-          <img id="addPreview" class="previewImg" alt="preview" />
-          <div class="previewMeta">
-            <div class="pill" id="addStatus">Ready</div>
-
-            <div class="field">
-              <label>Výsledok (môžeš opraviť)</label>
-              <input id="addPlate" class="input" placeholder="napr. H 6403" />
-            </div>
-
-            <div class="field">
-              <label>Kód (písmeno) – voliteľné</label>
-              <input id="addCode" class="input" placeholder="napr. H / N / U / J" />
-            </div>
-
-            <div class="field">
-              <label>Číslo – len číslice</label>
-              <input id="addDigits" class="input" placeholder="napr. 6403" />
-            </div>
-
-            <label class="checkLine">
-              <input type="checkbox" id="addNeedsReview" />
-              Vyžaduje sa kontrola
-            </label>
-
-            <div class="actions">
-              <button class="btn" id="btnDoOcr">OCR</button>
-              <button class="btnGold" id="btnSave">Uložiť</button>
-            </div>
-
-            <details class="details">
-              <summary>OCR kandidáti</summary>
-              <pre id="addCandidates">[]</pre>
-            </details>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="./app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>

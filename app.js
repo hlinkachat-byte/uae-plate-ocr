@@ -48,7 +48,7 @@ const btnSave = document.getElementById("btnSave");
 const addCandidates = document.getElementById("addCandidates");
 
 // ===== Filters (ako na local)
-const EMIRATES = ["Všetky","Dubai","Abu Dhabi","Sharjah","Ajman","Ras Al Khaimah","Fujairah","Umm Al Quwain"];
+const EMIRATES = ["All","Dubai","Abu Dhabi","Sharjah","Ajman","Ras Al Khaimah","Fujairah","Umm Al Quwain"];
 const DIGIT_FILTERS = [
   { key:"all", label:"All digits" },
   { key:"1", label:"1-digit" },

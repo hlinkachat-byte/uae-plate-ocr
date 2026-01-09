@@ -2,7 +2,8 @@
 const {
   initializeApp, getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
   serverTimestamp, doc, updateDoc, deleteDoc,
-  getStorage, sRef, uploadBytes, getDownloadURL, deleteObject
+  getStorage, sRef, uploadBytes, getDownloadURL, deleteObject,
+getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut
 } = window.firebaseImports;
 
 // 1) DOPLŇ FIREBASE CONFIG (z Firebase Console → Project settings → Web app)

@@ -465,6 +465,54 @@ btnSave.onclick = async () => {
   }
 };
 
+// ===== Auth init
+onAuthStateChanged(auth, async (u)=>{
+  currentUser = u;
+
+  if(!currentUser){
+    try{ await signInAnonymously(auth); }
+    catch(e){
+      console.error(e);
+      alert("Auth error (Anonymous sign-in). Skontroluj Firebase Auth provider v Firebase Console.");
+    }
+    return;
+  }
+
+  setUserPill(currentUser);
+});
+
+// User pill actions (Admin login / Sign out)
+const userPill = document.getElementById("userPill");
+if(userPill){
+  userPill.addEventListener("click", async ()=>{
+    if(!currentUser) return;
+
+    if(currentUser.isAnonymous){
+      if(!confirm("Prihlásiť sa ako ADMIN?")) return;
+      const email = prompt("Admin email:");
+      if(!email) return;
+      const pass = prompt("Admin password:");
+      if(!pass) return;
+
+      try{
+        await signInWithEmailAndPassword(auth, email.trim(), pass);
+      }catch(e){
+        console.error(e);
+        alert("Admin login failed.");
+      }
+    }else{
+      if(!confirm("Odhlásiť ADMINa a prejsť späť na anonym?")) return;
+      try{
+        await signOut(auth);
+        await signInAnonymously(auth);
+      }catch(e){
+        console.error(e);
+        alert("Sign out failed.");
+      }
+    }
+  });
+}
+
 // ===== Init
 renderChips();
 setView("grid");

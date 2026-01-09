@@ -7,11 +7,12 @@ const {
 
 // 1) DOPLŇ FIREBASE CONFIG (z Firebase Console → Project settings → Web app)
 const firebaseConfig = {
-  apiKey: "PASTE_HERE",
-  authDomain: "PASTE_HERE",
-  projectId: "PASTE_HERE",
-  storageBucket: "PASTE_HERE",
-  appId: "PASTE_HERE"
+   apiKey: "AIzaSyCMR1qchPIQZUHBaM5M-6Q9-rLb-4Xw108",
+  authDomain: "plate-hunter-19a0c.firebaseapp.com",
+  projectId: "plate-hunter-19a0c",
+  storageBucket: "plate-hunter-19a0c.firebasestorage.app",
+  messagingSenderId: "750670305068",
+  appId: "1:750670305068:web:0e3813fe946b57f69cbe89"
 };
 
 const app = initializeApp(firebaseConfig);

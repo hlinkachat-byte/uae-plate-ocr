@@ -423,7 +423,10 @@ btnSave.onclick = async () => {
     setStatus("Uploading…");
 
     // upload to Storage
-    const path = `plates/${Date.now()}_${Math.random().toString(16).slice(2)}_${f.name}`;
+    if(!currentUser){ alert("Auth not ready yet. Skús o chvíľu."); return; }
+
+const ownerUid = currentUser.uid;
+const path = `plates/${ownerUid}/${Date.now()}_${Math.random().toString(16).slice(2)}_${f.name}`;
     const storageRef = sRef(storage, path);
     await uploadBytes(storageRef, f);
     const imageUrl = await getDownloadURL(storageRef);

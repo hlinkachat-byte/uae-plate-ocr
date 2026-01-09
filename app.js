@@ -48,17 +48,15 @@ const btnSave = document.getElementById("btnSave");
 const addCandidates = document.getElementById("addCandidates");
 
 // ===== Filters (ako na local)
-const EMIRATES = ["All","Dubai","Abu Dhabi","Sharjah","Ajman","Ras Al Khaimah","Fujairah","Umm Al Quwain"];
-
+const EMIRATES = ["Všetky","Dubai","Abu Dhabi","Sharjah","Ajman","Ras Al Khaimah","Fujairah","Umm Al Quwain"];
 const DIGIT_FILTERS = [
-  { key:"all", label:"All digits" },
-  { key:"1", label:"1 digit" },
-  { key:"2", label:"2 digits" },
-  { key:"3", label:"3 digits" },
-  { key:"45", label:"4–5 digits" },
-  { key:"review", label:"Needs review" },
+  { key:"all", label:"Všetky číslice" },
+  { key:"1", label:"1-ciferný" },
+  { key:"2", label:"2-ciferný" },
+  { key:"3", label:"3-ciferný" },
+  { key:"45", label:"4–5" },
+  { key:"review", label:"Vyžaduje sa kontrola" },
 ];
-
 
 let state = {
   emirate: "Všetky",
@@ -87,15 +85,14 @@ function digitsBucket(n){
 // jednoduché rarity skóre ako v local (približne)
 function rarityScore(digits){
   const n = onlyDigits(digits);
-  if(!n) return { label:"Needs review", score:0 };
-  if(n.length===1) return { label:"Extremely rare", score:99 };
-  if(n.length===2) return { label:"Very rare", score:95 };
-  if(n.length===3) return { label:"Rare", score:70 };
-  if(n.length===4) return { label:"Less common", score:55 };
-  if(n.length===5) return { label:"Common", score:40 };
-  return { label:"Unknown", score:0 };
+  if(!n) return { label:"Vyžaduje kontrolu", score:0 };
+  if(n.length===1) return { label:"Extrémne vzácne", score:99 };
+  if(n.length===2) return { label:"Veľmi zriedkavé", score:95 };
+  if(n.length===3) return { label:"Zriedkavé", score:70 };
+  if(n.length===4) return { label:"Menej časté", score:55 };
+  if(n.length===5) return { label:"Bežnejšie", score:40 };
+  return { label:"Neznáme", score:0 };
 }
-
 
 function buildPlateText(code, digits){
   const c = upper(code);

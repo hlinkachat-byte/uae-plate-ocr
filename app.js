@@ -56,7 +56,7 @@ function refreshUserPill(){
 }
 
 
-const auth = getAuth(app);
+
 
 let currentUser = null;
 let displayName = "";
